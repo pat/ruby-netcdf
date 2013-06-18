@@ -1,10 +1,9 @@
 require "rubygems" unless defined?(Gem)
-require 'rubygems/gem_runner'
 require "mkmf"
 
-hoge = Gem::GemPathSearcher.new.find("narray")
+hoge = Gem::Specification.find_by_name("narray")
 narray_fullname = hoge.full_name
-narray_installpath = hoge.installation_path
+narray_installpath = Gem.dir
 narray_include = "#{narray_installpath}/gems/#{narray_fullname}/"
 narray_lib = "#{narray_installpath}/gems/#{narray_fullname}/"
 
