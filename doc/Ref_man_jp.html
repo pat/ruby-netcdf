@@ -1,0 +1,1445 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html 
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Untitled</title>
+</head>
+<body>
+<h1><a name="label:0" id="label:0">RubyNetCDF レファレンスマニュアル</a></h1><!-- RDLabel: "RubyNetCDF レファレンスマニュアル" -->
+<ul>
+<li><a href="#label:9">メソッドインデックス</a></li>
+</ul>
+<p>---------------------------------------------</p>
+<h2><a name="label:1" id="label:1">概要</a></h2><!-- RDLabel: "概要" -->
+<p>RubyNetCDF は NetCDF ライブラリーの Ruby インターフェースである。Ruby 
+はフリーなオブジェクト指向スクリプト言語であり、
+<a href="http://www.ruby-lang.org/">ここ</a>
+から入手できる。RubyNetCDF は数値配列として、
+Ruby で一般的に使われている多次元数値配列ライブラリー 
+<a href="http://www.ruby-lang.org/en/raa-list.rhtml?name=NArray">NArray</a> 
+を用るので、あらかじめインストールしておく必要がある。
+NArray はデータを、C のポインターが指す連続したメモリー領域
+に保持し、計算機資源を効率よく利用する。NArray は Python における 
+NumPy と似るが、幾つかのテストは NArray のほうが NumPy より効率が良い
+ことを示唆している。
+オプションとして、RubyNetCDF はデータ欠損の自動的な取り扱いメソッドを
+提供する。これを使うには、
+<a href="http://ruby.gfd-dennou.org/products/narray_miss/">NArrayMiss</a> 
+が必要である。詳しくは<a href="#label:6">使用法</a>を見よ。</p>
+<h3><a name="label:2" id="label:2">構成</a></h3><!-- RDLabel: "構成" -->
+<p>RubyNetCDF は以下の４つのクラスから構成される。</p>
+<ul>
+<li><p><a href="#label:10">クラス NetCDF</a> -- ファイルのクラス</p>
+<p>一つのNetCDFクラスのオブジェクトは一つの NetCDF ファイルに対応する</p></li>
+<li><p><a href="#label:43">クラス NetCDFDim</a> -- 次元のクラス</p>
+<p>C 版 NetCDF では、次元は、ファイルのIDと次元IDという２変数の組で表されるが、
+Ruby 版では一つの NetCDFDim オブジェクトで代表される</p></li>
+<li><p><a href="#label:51">クラス NetCDFVar</a> -- 変数のクラス</p>
+<p>C 版 NetCDF では、変数は、ファイルのIDと変数IDという２変数の組で表されるが、
+Ruby 版では一つの NetCDFVar オブジェクトで代表される</p></li>
+<li><p><a href="#label:90">クラス NetCDFAtt</a> -- 属性のクラス</p>
+<p>C 版 NetCDF では、属性は、ファイルのIDと変数IDと属性名の組で表されるが、
+Ruby 版では一つの NetCDFAtt オブジェクトで代表される</p></li>
+</ul>
+<h3><a name="label:3" id="label:3">データ型</a></h3><!-- RDLabel: "データ型" -->
+<p>本ライブラリーでは全ての NetCDF 変数の型 char, byte, short, int,
+float, double がサポートされている。しかし、これらは Ruby の（より正確
+に言うと NArray の）慣例に従って、それぞれ "char", "byte", "sint",
+"int", "sfloat", "float" と呼ばれる。従って、NetCDFVar クラスの vartype
+(=ntype) はこれらの文字列の一つを返す。また、NetCDFクラスの def_var メ
+ソッドは、変数を定義する際、これらを受け付ける。特に注意する必要がある
+のは、本ライブラリーでの "float" は C で言うところの double を意味する
+ということである。これは Ruby の慣例のせいである -- 組み込みの Float 
+クラスは、C の float でなく double に対応するのである。</p>
+<p>NetCDFVar クラスの get メソッドはファイル中と同じ型の NArray 変数に値
+を読み込むが、"char" 型変数については "byte" 型 NArray に読み込まれる。
+これは NArray が "char" 型を持たないからである。ただ、そもそも NArray 
+は byte 型で文字列を簡単に扱えるので、特に不都合はないと考えられる。</p>
+<h3><a name="label:4" id="label:4">エラー処理</a></h3><!-- RDLabel: "エラー処理" -->
+<p>エラーは基本的には例外を発生することにより対処する。但し、値を返すメソッ
+ドでは軽微なエラーは nil を返すことで対処する（属性値を得るために指定
+された名前の属性が存在しないときなど）。例外的な状況で nil を発生する
+メソッドについてはマニュアルに明記してある。</p>
+<h3><a name="label:5" id="label:5">セキュリティ</a></h3><!-- RDLabel: "セキュリティ" -->
+<p>組み込みの File クラスと同じセキュリティー対応をしていてる。</p>
+<h3><a name="label:6" id="label:6">使用法</a></h3><!-- RDLabel: "使用法" -->
+<p>RubyNetCDFライブラリーを利用するためには、まず次の行を Ruby プログラムに書い
+てライブラリーをロードする必要がある。</p>
+<pre>require 'numru/netcdf'</pre>
+<p>もしも (NetCDFVarクラスの) 自動的なデータ欠損処理メソッドを使いたい場
+合は、以下を実行する必要がある。</p>
+<pre>require 'numru/netcdf_miss'</pre>
+<p>これは内部で一番最初に <code>require 'numru/netcdf'</code> を実行するので、
+これだけ呼べば良い。データ欠損の扱いは
+<a href="http://ruby.gfd-dennou.org/products/narray_miss/">NArrayMiss</a>
+によるので、これをインストールしておかねばならない。
+もしも <code>require 'numru/netcdf'</code> だけを呼ぶのなら、NArrayMiss
+は不要である。</p>
+<p>ここで、'numru' ("Numerical Ruby"から取られた) はユーザーのライブラリー
+ロードパス中のサブディレクトリーで、RubyNetCDF ライブラリーが置かれる。
+すると、以下のように利用できるようになる。</p>
+<pre>file = NumRu::NetCDF.create('tmp.nc')
+x = file.def_dim('x',10)
+y = file.def_dim('y',10)
+v = file.def_var('v','float',[x,y])
+file.close</pre>
+<p>ここで、NumRu はこのライブラリーを含むモジュールである。このようなモジュー
+ルにくるんであるのは、名前空間での衝突を避けるためである。このような扱
+いをしない場合、もしもユーザーが、本ライブラリー中のクラスと名前が衝突
+するクラスやモジュールを含むライブラリーを使おうとすると、問題が起る。</p>
+<p>このような問題が起こらないであろう場合は、"NumRu::" という冠は、NumRu
+モジュールを「インクルード」することで外せる（現在のスコープにおいてと
+いうこである）。従って次のように書ける。</p>
+<pre>include NumRu
+file = NetCDF.create('tmp.nc')
+...</pre>
+<p>さらなる使用例としてはダウンロード用パッケージに含まれる demo や test 
+プログラムを参照せよ。</p>
+<p>---------------------------------------------</p>
+<h2><a name="label:7" id="label:7">マニュアルの見方</a></h2><!-- RDLabel: "マニュアルの見方" -->
+<dl>
+<dt><h4><a name="label:8" id="label:8"><code>メソッド名(引数<var>1</var>, 引数<var>2</var>, ...)  -- 省略可能な引数は 引数名=デフォルト値 の形で示す</code></a></h4></dt><!-- RDLabel: "メソッド名" -->
+<dd>
+<p>機能の解説</p>
+<p>引数</p>
+<ul>
+<li>引数1の名 (そのクラスまたは取り得る値): 説明</li>
+<li>引数2の名 (そのクラスまたは取り得る値): 説明</li>
+<li>...</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>戻り値の説明</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>NetCDF ver 3 の関数名。括弧がない場合、その関数と同等の機能を有
+       することを示す。直接的な対応がない場合、括弧内に依存する関数を挙げる。</li>
+</ul></dd>
+</dl>
+<p>---------------------------------------------</p>
+<h2><a name="label:9" id="label:9">メソッドインデックス</a></h2><!-- RDLabel: "メソッドインデックス" -->
+<ul>
+<li><p><a href="#label:10">クラス NetCDF</a></p>
+<p>クラスメソッド</p>
+<ul>
+<li><a href="#label:12">NetCDF.open</a>     ファイルオープン（クラスメソッド）mode="w" でファイルが存在しなければ新規作成</li>
+<li><a href="#label:13">NetCDF.new</a>     NetCDF.openメソッドのエイリアスである</li>
+<li><a href="#label:14">NetCDF.create</a>     NetCDFファイルを作る（クラスメソッド)</li>
+<li><a href="#label:15">NetCDF.create_tmp</a>     テンポラリーNetCDFファイルを作る（クラスメソッド)</li>
+</ul>
+<p>インスタンスメソッド</p>
+<ul>
+<li><a href="#label:17">close</a>     ファイルクローズ</li>
+<li><a href="#label:18">ndims</a>     ファイル中の次元の数を返す</li>
+<li><a href="#label:19">nvars</a>     ファイル中の変数の数を返す</li>
+<li><a href="#label:20">natts</a>     ファイル中のグローバル属性の数を返す</li>
+<li><a href="#label:21">unlimited</a>     ファイル中のunlimited dimensionを返す</li>
+<li><a href="#label:22">path</a>     ファイルのパス. open/create時のfilename引数の中身を返す.</li>
+<li><a href="#label:23">redef</a>     define modeにする。既にそうなら何もせずnilを返す。</li>
+<li><a href="#label:24">enddef</a>     data mode に入る。既にそうなら何もせずnilを返す。</li>
+<li><a href="#label:25">define_mode?</a>     今定義モードかどうか問合わせる.</li>
+<li><a href="#label:26">sync</a>     メモリー中のバッファーをディスク上に反映してファイルを同期させる</li>
+<li><a href="#label:27">def_dim</a>     dimensionを定義</li>
+<li><a href="#label:28">put_att</a>     グローバル属性を設定</li>
+<li><a href="#label:29">def_var</a>     変数を定義</li>
+<li><a href="#label:30">def_var_with_dim</a>     def_varと同じだが必要ならまず次元を定義する。</li>
+<li><a href="#label:31">var</a>     ファイルに既存の変数をオープン</li>
+<li><a href="#label:32">vars</a>    ファイルに既存の変数をまとめてオープン</li>
+<li><a href="#label:33">dim</a>     既存の次元をオープン</li>
+<li><a href="#label:34">dims</a>    既存の次元をまとめてオープン</li>
+<li><a href="#label:35">att</a>     既存のグローバル属性をオープン</li>
+<li><a href="#label:36">fill=</a>     fillmodeの変更。(NetCDF のデフォルトは FILL である。)</li>
+<li><a href="#label:37">each_dim</a>     次元に関するイテレータ. </li>
+<li><a href="#label:38">each_var</a>     変数に関するイテレータ. </li>
+<li><a href="#label:39">each_att</a>     グローバル属性に関するイテレータ. </li>
+<li><a href="#label:40">dim_names</a>     ファイル中の全次元の名前を配列に入れて返す。</li>
+<li><a href="#label:41">var_names</a>     ファイル中の全変数の名前を配列に入れて返す。</li>
+<li><a href="#label:42">att_names</a>     ファイル中の全グローバル属性の名前を配列に入れて返す。</li>
+</ul></li>
+<li><p><a href="#label:43">クラス NetCDFDim</a></p>
+<p>クラスメソッド</p>
+<p>インスタンスメソッド</p>
+<ul>
+<li><a href="#label:46">length</a>     次元の長さを返す</li>
+<li><a href="#label:47">length_ul0</a>     length と同じだが、無制限次元に関しゼロを返す</li>
+<li><a href="#label:48">name=</a>     名前をつけかえる</li>
+<li><a href="#label:49">name</a>     名前を返す</li>
+<li><a href="#label:50">unlimited?</a>     無制限次元かどうか？</li>
+</ul></li>
+<li><p><a href="#label:51">クラス NetCDFVar</a></p>
+<p>クラスメソッド</p>
+<ul>
+<li><a href="#label:53">NetCDFVar.new</a>     NetCDF.open と NetCDF#Var を組み合わせて一行で済ます(使わなくて良い).</li>
+<li><a href="#label:54">NetCDFVar.unpack_type=</a>    <a href="#label:81">unpack</a>で使うNArrayの型を固定する</li>
+<li><a href="#label:55">NetCDFVar.unpack_type</a>    <a href="#label:54">NetCDFVar.unpack_type=</a>で設定したNArrayの型を返す</li>
+</ul>
+<p>インスタンスメソッド</p>
+<ul>
+<li><a href="#label:33">dim</a>     その変数における dim_num 番目(0から数える)の次元を問合わせる。</li>
+<li><a href="#label:34">dims</a>     その変数の全次元を配列にいれて返す</li>
+<li><a href="#label:59">shape_ul0</a>     変数の形を返す. 但し無制限次元の長さはゼロ.</li>
+<li><a href="#label:60">shape_current</a>     変数の現在の形を返す.</li>
+<li><a href="#label:39">each_att</a>     変数中の全属性(NetCDFAtt)に関するイテレータ</li>
+<li><a href="#label:40">dim_names</a>     変数中の全次元の名前を配列に入れて返す。</li>
+<li><a href="#label:42">att_names</a>     変数中の全属性の名前を配列に入れて返す。</li>
+<li><a href="#label:49">name</a>     変数の名前を返す</li>
+<li><a href="#label:48">name=</a>     名前を付け替える</li>
+<li><a href="#label:18">ndims</a>     次元の数を問う</li>
+<li><a href="#label:67">rank</a>     ndimsのエリアス</li>
+<li><a href="#label:68">ntype</a>     vartype の別名</li>
+<li><a href="#label:69">vartype</a>     変数値の型を問う</li>
+<li><a href="#label:70">typecode</a>     変数値の型を問う(NArrayのtypecodeで返す)</li>
+<li><a href="#label:20">natts</a>     属性の数を問う</li>
+<li><a href="#label:72">file</a>     その変数が属するファイルを問合わせる</li>
+<li><a href="#label:35">att</a>     名前を指定した属性を返す</li>
+<li><a href="#label:28">put_att</a>     属性を設定</li>
+<li><a href="#label:75">put</a>     　<a href="#label:76">simple_put</a>の別名(alias)</li>
+<li><a href="#label:76">simple_put</a>     値を入れる</li>
+<li><a href="#label:77">pack</a> selfの属性 scale_factor and/or add_offset を用いて NArray 等を "pack" する.</li>
+<li><a href="#label:78">scaled_put</a>     <a href="#label:76">simple_put</a> と同様だが、<a href="#label:77">pack</a>により属性 scale_factor と add_offset を解釈する</li>
+<li><a href="#label:79">get</a>     　<a href="#label:80">simple_get</a>の別名(alias)</li>
+<li><a href="#label:80">simple_get</a>     値を取り出す</li>
+<li><a href="#label:81">unpack</a> selfの属性 scale_factor and/or add_offset を用いて NArray 等を "unpack" する.</li>
+<li><a href="#label:82">scaled_get</a>     <a href="#label:80">simple_get</a> と同様だが、<a href="#label:81">unpack</a>により属性 scale_factor と add_offset を解釈する</li>
+<li><a href="#label:83">[]</a>     NetCDFVar#get と同様だが、サブセットを NArray#[] と同様に指定する. </li>
+<li><a href="#label:84">[]=</a>     NetCDFVar#put と同様だが、サブセットを NArray#[]= と同様に指定する.</li>
+</ul>
+<p>"numru/netcdf_miss" を require することで追加されるインスタンスメソッド</p>
+<ul>
+<li><a href="#label:86">get_with_miss</a>     　<a href="#label:79">get</a>と同様だが、データ欠損を処理する</li>
+<li><a href="#label:87">get_with_miss_and_scaling</a>     　<a href="#label:86">get_with_miss</a>と同様だが、<a href="#label:81">unpack</a>によりスケーリングも行う.</li>
+<li><a href="#label:88">put_with_miss</a>     　<a href="#label:75">put</a>と同様だが、データ欠損を処理する</li>
+<li><a href="#label:89">put_with_miss_and_scaling</a>     　<a href="#label:88">put_with_miss</a>と同様だが、<a href="#label:77">pack</a>によりスケーリングも行う.</li>
+</ul></li>
+<li><p><a href="#label:90">クラス NetCDFAtt</a></p>
+<p>クラスメソッド</p>
+<p>インスタンスメソッド</p>
+<ul>
+<li><a href="#label:49">name</a>     属性の名前を返す</li>
+<li><a href="#label:48">name=</a>     属性の名前を変更</li>
+<li><a href="#label:95">copy</a>     属性を別の変数またはファイルにコピー。ファイルの場合はグローバル属性になる</li>
+<li><a href="#label:96">delete</a>     属性を削除</li>
+<li><a href="#label:75">put</a>     属性の値を設定</li>
+<li><a href="#label:79">get</a>     属性の中身を取り出す</li>
+<li><a href="#label:99">atttype</a>     属性値の型を問う</li>
+<li><a href="#label:70">typecode</a>     属性値の型を問う(NArrayのtypecodeで返す)</li>
+</ul></li>
+</ul>
+<p>---------------------------------------------</p>
+<h1><a name="label:10" id="label:10">クラス NetCDF</a></h1><!-- RDLabel: "クラス NetCDF" -->
+<h3><a name="label:11" id="label:11">クラスメソッド</a></h3><!-- RDLabel: "クラスメソッド" -->
+<dl>
+<dt><h4><a name="label:12" id="label:12"><code>NetCDF.open(<var>filename</var>, <var>mode</var>="<var>r</var>", <var>share</var>=<var>false</var>)</code></a></h4></dt><!-- RDLabel: "NetCDF.open" -->
+<dd>
+<p>ファイルオープン（クラスメソッド）mode="w" でファイルが存在しなければ新規作成</p>
+<p>引数</p>
+<ul>
+<li>filename (String): ファイル名</li>
+<li>mode (String) : 入出力モード: "r"(読み取りのみ); "w","w+" (書き
+       込み -- 現在の中身は上書き(消える!)); "r+","a","a+" (追加 --
+       現在の内容はそのままに、書き込み可)。 組み込みの File クラスと
+       違い、どのモードでも読み込みは可能。注意：元になる NetCDFライ
+       ブラリーの制限により、「追加」には余分な時間とディスクスペース
+       がかかる。</li>
+<li>share (true or false) : sharedモードにするか (書き込み中のファ
+       イルに他のプロセスからの読み込みがあり得る場合に true とする。C版ユー
+       ザーズガイド第5章の nc_open の項を参照のこと)</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>NetCDFクラスのオブジェクト</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_open, nc_create</li>
+</ul></dd>
+<dt><h4><a name="label:13" id="label:13"><code>NetCDF.new</code></a></h4></dt><!-- RDLabel: "NetCDF.new" -->
+<dd>
+<p>NetCDF.openメソッドのエイリアスである</p></dd>
+<dt><h4><a name="label:14" id="label:14"><code>NetCDF.create(<var>filename</var>, <var>noclobber</var>=<var>false</var>, <var>share</var>=<var>false</var>)</code></a></h4></dt><!-- RDLabel: "NetCDF.create" -->
+<dd>
+<p>NetCDFファイルを作る（クラスメソッド)</p>
+<p>引数</p>
+<ul>
+<li>filename (String) : ファイル名</li>
+<li>noclobber (true or false) : 上書きするかしないか</li>
+<li>share (true or false) : shared mode を使うか (書き込み中のファ
+       イルに他のプロセスからの読み込みがあり得る場合に true とする。C版ユー
+       ザーズガイド第5章の nc_open の項を参照のこと)</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>NetCDFクラスのオブジェクト</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_create</li>
+</ul></dd>
+<dt><h4><a name="label:15" id="label:15"><code>NetCDF.create_tmp(<var>tmpdir</var>=<var>ENV</var>['<var>TMPDIR</var>']||<var>ENV</var>['<var>TMP</var>']||<var>ENV</var>['<var>TEMP</var>']||'.', <var>share</var>=<var>false</var>)</code></a></h4></dt><!-- RDLabel: "NetCDF.create_tmp" -->
+<dd>
+<p>テンポラリーNetCDFファイルを作る（クラスメソッド)
+名前は自動で決まる。クローズされると消される。</p>
+<p>引数</p>
+<ul>
+<li>tmpdir (String) : テンポラリーファイルを置くディレクトリー名。
+       デフォルトは環境変数で指定されたディレクトリー（TMPDIR,TMP,or
+       TEMP）または '.'。セキュアーモードでは '.' のみがデフォルトとな
+       る。</li>
+<li>share (true or false) : shared mode を使うか</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>NetCDFクラスのオブジェクト</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_create</li>
+</ul></dd>
+</dl>
+<h3><a name="label:16" id="label:16">インスタンスメソッド</a></h3><!-- RDLabel: "インスタンスメソッド" -->
+<dl>
+<dt><h4><a name="label:17" id="label:17"><code>close</code></a></h4></dt><!-- RDLabel: "close" -->
+<dd>
+<p>ファイルクローズ</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_close</li>
+</ul></dd>
+<dt><h4><a name="label:18" id="label:18"><code>ndims</code></a></h4></dt><!-- RDLabel: "ndims" -->
+<dd>
+<p>ファイル中の次元の数を返す</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>Integer</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_ndims</li>
+</ul></dd>
+<dt><h4><a name="label:19" id="label:19"><code>nvars</code></a></h4></dt><!-- RDLabel: "nvars" -->
+<dd>
+<p>ファイル中の変数の数を返す</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>Integer</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_nvars</li>
+</ul></dd>
+<dt><h4><a name="label:20" id="label:20"><code>natts</code></a></h4></dt><!-- RDLabel: "natts" -->
+<dd>
+<p>ファイル中のグローバル属性の数を返す</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>Integer</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_natts</li>
+</ul></dd>
+<dt><h4><a name="label:21" id="label:21"><code>unlimited</code></a></h4></dt><!-- RDLabel: "unlimited" -->
+<dd>
+<p>ファイル中のunlimited dimensionを返す</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>存在するときNetCDFDimクラスのオブジェクト。ないときはnil</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_unlimdim</li>
+</ul></dd>
+<dt><h4><a name="label:22" id="label:22"><code>path</code></a></h4></dt><!-- RDLabel: "path" -->
+<dd>
+<p>ファイルのパス. open/create時のfilename引数の中身を返す.</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>String</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>なし</li>
+</ul></dd>
+<dt><h4><a name="label:23" id="label:23"><code>redef</code></a></h4></dt><!-- RDLabel: "redef" -->
+<dd>
+<p>define modeにする。既にそうなら何もせずnilを返す。</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>true (定義モードへの変更が成功);</li>
+</ul></dd>
+</dl>
+<pre>nil (既に定義モード中).
+その他の理由で変更できない場合は例外発生.</pre>
+<pre>対応する(利用する) C 版 NetCDF の関数
+*  nc_redef</pre>
+<dl>
+<dt><h4><a name="label:24" id="label:24"><code>enddef</code></a></h4></dt><!-- RDLabel: "enddef" -->
+<dd>
+<p>data mode に入る。既にそうなら何もせずnilを返す。</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>true (データモードへの変更が成功);</li>
+</ul></dd>
+</dl>
+<pre>nil (既にデータモード中).
+その他の理由で変更できない場合は例外発生.</pre>
+<pre>対応する(利用する) C 版 NetCDF の関数
+*  nc_endef</pre>
+<dl>
+<dt><h4><a name="label:25" id="label:25"><code>define_mode?</code></a></h4></dt><!-- RDLabel: "define_mode?" -->
+<dd>
+<p>今定義モードかどうか問合わせる.</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>true (今定義モード);</li>
+</ul></dd>
+</dl>
+<pre>false (今データモード);
+nil (その他 -- 読み出し専用など).</pre>
+<pre>対応する(利用する) C 版 NetCDF の関数
+*  nc_redef と nc_enddef の組み合わせ</pre>
+<dl>
+<dt><h4><a name="label:26" id="label:26"><code>sync</code></a></h4></dt><!-- RDLabel: "sync" -->
+<dd>
+<p>メモリー中のバッファーをディスク上に反映してファイルを同期させる</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_sync</li>
+</ul></dd>
+<dt><h4><a name="label:27" id="label:27"><code>def_dim(<var>dimension_name</var>, <var>length</var>)</code></a></h4></dt><!-- RDLabel: "def_dim" -->
+<dd>
+<p>dimensionを定義</p>
+<p>引数</p>
+<ul>
+<li>dimension_name (String) : 定義するdimensionの名前</li>
+<li>length (Integer) : dimensionの長さ。無制限次元は 0。</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>定義された次元 (NetCDFDimオブジェクト)</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_def_dim</li>
+</ul></dd>
+<dt><h4><a name="label:28" id="label:28"><code>put_att(<var>attribute_name</var>, <var>value</var>, <var>atttype</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "put_att" -->
+<dd>
+<p>グローバル属性を設定</p>
+<p>引数</p>
+<ul>
+<li>attribute_name (String) : グローバル属性の名前</li>
+<li>value (Numeric, String, Array of Numeric, or NArray) : 設定する値</li>
+<li>atttype (nil or String) : 属性の型.
+       "char"(="string"),"byte", "sint","int","sfloat", "float" (それ
+       ぞれ,1,1,2,4,4,8 バイト)) または nil (つまりお任せ)</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>設定された属性 (NetCDFAttオブジェクト)</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_put_att_&lt;type&gt;</li>
+</ul></dd>
+<dt><h4><a name="label:29" id="label:29"><code>def_var(<var>variable_name</var>, <var>vartype</var>, <var>dimensions</var>)</code></a></h4></dt><!-- RDLabel: "def_var" -->
+<dd>
+<p>変数を定義</p>
+<p>引数</p>
+<ul>
+<li>variable_name (String) : 定義するvariableの名前</li>
+<li>vartype (String or Fixnum) : 変数のタイプ ("char", "byte", "sint", "sint", "int",
+       "sfloat", "float" のいずれか、またはNArrayのtypecode(Fixnum))</li>
+<li>dimensions (Array) : variableの次元。NetCDFDim の Array。最も
+       「速く回る」次元から「遅く回る」次元の順に。その長さが変数の
+       rank となる。</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>定義した変数(NetCDFVarオブジェクト)</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_def_var</li>
+</ul></dd>
+<dt><h4><a name="label:30" id="label:30"><code>def_var_with_dim(<var>variable_name</var>, <var>vartype</var>, <var>shape_ul0</var>, <var>dimnames</var>)</code></a></h4></dt><!-- RDLabel: "def_var_with_dim" -->
+<dd>
+<p>def_varと同じだが必要ならまず次元を定義する。
+既存次元の長さと合わない場合例外。</p>
+<p>引数</p>
+<ul>
+<li>variable_name (String) : 定義するvariableの名前</li>
+<li>vartype (String) : 変数のタイプ ("char", "byte", "sint", "sint", "int",
+       "sfloat", "float" のいずれか)</li>
+<li>shape_ul0 (Array of Integer) : 変数の形、即ち、各次元の長さ。無
+       制限次元はゼロで表す。長さが変数の rank となる。</li>
+<li>dimnames (Array of String) : 各次元の名前. 長さ(=&gt;rank) は
+       shape_ul0 と等しくなければならない。</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>定義した変数(NetCDFVarオブジェクト)</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>(nc_def_var)</li>
+</ul></dd>
+<dt><h4><a name="label:31" id="label:31"><code>var(<var>var_name</var>)</code></a></h4></dt><!-- RDLabel: "var" -->
+<dd>
+<p>ファイルに既存の変数をオープン</p>
+<p>引数</p>
+<ul>
+<li>var_name (String) : オープンする変数名</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>NetCDFVar クラスのオブジェクト。存在しなければ nil。</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_varid</li>
+</ul></dd>
+<dt><h4><a name="label:32" id="label:32"><code>vars(<var>names</var> = <var>nil</var>)</code></a></h4></dt><!-- RDLabel: "vars" -->
+<dd>
+<p>ファイル中の変数をまとめてオープン</p>
+<p>引数</p>
+<ul>
+<li>names (nil or Array of String) : オープンする変数名. nilなら全部（デフォルト）</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>NetCDFVarオブジェクトのArray。namesに存在しない変数名が含まれれば例外発生。</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_varid</li>
+</ul></dd>
+<dt><h4><a name="label:33" id="label:33"><code>dim(<var>dimension_name</var>)</code></a></h4></dt><!-- RDLabel: "dim" -->
+<dd>
+<p>既存の次元をオープン</p>
+<p>引数</p>
+<ul>
+<li>dimension_name (String) : オープンする次元名</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>NetCDFDimクラスのオブジェクト。存在しなければ nil。</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_dimid</li>
+</ul></dd>
+<dt><h4><a name="label:34" id="label:34"><code>dims(<var>names</var> = <var>nil</var>)</code></a></h4></dt><!-- RDLabel: "dims" -->
+<dd>
+<p>ファイル中の次元をまとめてオープン</p>
+<p>引数</p>
+<ul>
+<li>names (nil or Array of String) : オープンする次元名. nilなら全部（デフォルト）</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>NetCDFDimオブジェクトのArray。namesに存在しない次元名が含まれれば例外発生。</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_dimid</li>
+</ul></dd>
+<dt><h4><a name="label:35" id="label:35"><code>att(<var>attribute_name</var>)</code></a></h4></dt><!-- RDLabel: "att" -->
+<dd>
+<p>既存のグローバル属性をオープン</p>
+<p>引数</p>
+<ul>
+<li>attribute_name (String) : オープンするグローバル属性名</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>存在すれば NetCDFAttクラスのオブジェクト。存在しなければnil</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>(nc_inq_attidを検査に利用)</li>
+</ul></dd>
+<dt><h4><a name="label:36" id="label:36"><code>fill=(<var>filemode</var>)</code></a></h4></dt><!-- RDLabel: "fill=" -->
+<dd>
+<p>fillmodeの変更。(NetCDF のデフォルトは FILL である。)</p>
+<p>引数</p>
+<ul>
+<li>fillmode (true for FILL or false for NOFILL)</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_set_fill</li>
+</ul></dd>
+<dt><h4><a name="label:37" id="label:37"><code>each_dim{ ... }</code></a></h4></dt><!-- RDLabel: "each_dim" -->
+<dd>
+<p>次元に関するイテレータ. 
+例: {|i| print i.name,"\n"} で全次元の名前を表示.</p>
+<p>引数</p>
+<ul>
+<li>{ ... } : イテレーター用ブロック。do endブロックでもよい。</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>self</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>(nc_inq_ndimsを利用)</li>
+</ul></dd>
+<dt><h4><a name="label:38" id="label:38"><code>each_var{ ... }</code></a></h4></dt><!-- RDLabel: "each_var" -->
+<dd>
+<p>変数に関するイテレータ. 
+例: {|i| print i.name,"\n"} で全変数の名前を表示.</p>
+<p>引数</p>
+<ul>
+<li>{ ... } : イテレーター用ブロック。do endブロックでもよい。</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>self</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>(nc_inq_nvarsを利用)</li>
+</ul></dd>
+<dt><h4><a name="label:39" id="label:39"><code>each_att{ ... }</code></a></h4></dt><!-- RDLabel: "each_att" -->
+<dd>
+<p>グローバル属性に関するイテレータ. 
+例: {|i| print i.name,"\n"} で全属性の名前を表示.</p>
+<p>引数</p>
+<ul>
+<li>{ ... } : イテレーター用ブロック。do endブロックでもよい。</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>self</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>(nc_inq_natts, nc_inq_attnameを利用)</li>
+</ul></dd>
+<dt><h4><a name="label:40" id="label:40"><code>dim_names</code></a></h4></dt><!-- RDLabel: "dim_names" -->
+<dd>
+<p>ファイル中の全次元の名前を配列に入れて返す。</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>String の Array</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>(nc_inq_ndims, nc_inq_dimnameを利用)</li>
+</ul></dd>
+<dt><h4><a name="label:41" id="label:41"><code>var_names</code></a></h4></dt><!-- RDLabel: "var_names" -->
+<dd>
+<p>ファイル中の全変数の名前を配列に入れて返す。</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>String の Array</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>(nc_inq_nvars, nc_inq_varnameを利用)</li>
+</ul></dd>
+<dt><h4><a name="label:42" id="label:42"><code>att_names</code></a></h4></dt><!-- RDLabel: "att_names" -->
+<dd>
+<p>ファイル中の全グローバル属性の名前を配列に入れて返す。
+引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>String の Array</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>(nc_inq_natts, nc_inq_attnameを利用)</li>
+</ul></dd>
+</dl>
+<p>---------------------------------------------</p>
+<h1><a name="label:43" id="label:43">クラス NetCDFDim</a></h1><!-- RDLabel: "クラス NetCDFDim" -->
+<h3><a name="label:44" id="label:44">クラスメソッド</a></h3><!-- RDLabel: "クラスメソッド" -->
+<h3><a name="label:45" id="label:45">インスタンスメソッド</a></h3><!-- RDLabel: "インスタンスメソッド" -->
+<dl>
+<dt><h4><a name="label:46" id="label:46"><code>length</code></a></h4></dt><!-- RDLabel: "length" -->
+<dd>
+<p>次元の長さを返す</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>Integer</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_dimlen</li>
+</ul></dd>
+<dt><h4><a name="label:47" id="label:47"><code>length_ul0</code></a></h4></dt><!-- RDLabel: "length_ul0" -->
+<dd>
+<p>length と同じだが、無制限次元に関しゼロを返す</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>Integer</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_dimlen</li>
+</ul></dd>
+<dt><h4><a name="label:48" id="label:48"><code>name=(<var>dimension_newname</var>)</code></a></h4></dt><!-- RDLabel: "name=" -->
+<dd>
+<p>名前をつけかえる</p>
+<p>引数</p>
+<ul>
+<li>dimension_newname (String) : 新しい名前</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_rename_dim</li>
+</ul></dd>
+<dt><h4><a name="label:49" id="label:49"><code>name</code></a></h4></dt><!-- RDLabel: "name" -->
+<dd>
+<p>名前を返す</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>String</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_dimname</li>
+</ul></dd>
+<dt><h4><a name="label:50" id="label:50"><code>unlimited?</code></a></h4></dt><!-- RDLabel: "unlimited?" -->
+<dd>
+<p>無制限次元かどうか？</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>true or false</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>(nc_inq_unlimdim を利用)</li>
+</ul></dd>
+</dl>
+<p>---------------------------------------------</p>
+<h1><a name="label:51" id="label:51">クラス NetCDFVar</a></h1><!-- RDLabel: "クラス NetCDFVar" -->
+<h3><a name="label:52" id="label:52">クラスメソッド</a></h3><!-- RDLabel: "クラスメソッド" -->
+<dl>
+<dt><h4><a name="label:53" id="label:53"><code>NetCDFVar.new(<var>file</var>,<var>varname</var>,<var>mode</var>="<var>r</var>",<var>share</var>=<var>false</var>)</code></a></h4></dt><!-- RDLabel: "NetCDFVar.new" -->
+<dd>
+<p>NetCDF変数をオープンする。これは、NetCDF#var (NetCDFクラスのイン
+スタンスメソッドvar) を使っても出来るし、そちらのほうを推奨する。</p>
+<p>引数</p>
+<ul>
+<li>file (NetCDF or String) : NetCDFオブジェクト(NetCDF)
+       または NetCDF ファイルのパス(String)</li>
+<li>varname (String) : file中の変数名</li>
+<li>mode (String) : 入出力モード。fileが String の時に使われる。
+       （NetCDF.openの項を見よ）</li>
+<li>share (true or false) : sharedモードにするか。
+       fileが String の時に使われる。（NetCDF.openの項を見よ）</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>NetCDFVarクラスのオブジェクト</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>(nc_open, nc_create, nc_inq_varid 等を利用する)</li>
+</ul></dd>
+<dt><h4><a name="label:54" id="label:54"><code>NetCDFVar.unpack_type=(<var>na_type</var>)</code></a></h4></dt><!-- RDLabel: "NetCDFVar.unpack_type=" -->
+<dd>
+<p><a href="#label:82">scaled_get</a>で使うNArrayの型を固定する.</p>
+<p>引数</p>
+<ul>
+<li>na_type (Integer) : NArray::BYTE, NArray::SINT, NArray::INT, 
+       NArray::SFLOAT, or NArray::FLOAT</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>na_type (引数)</li>
+</ul></dd>
+<dt><h4><a name="label:55" id="label:55"><code>NetCDFVar.unpack_type</code></a></h4></dt><!-- RDLabel: "NetCDFVar.unpack_type" -->
+<dd>
+<p><a href="#label:54">NetCDFVar.unpack_type=</a>で設定したNArrayの型を返す.</p>
+<p>戻り値</p>
+<ul>
+<li>nil, NArray::BYTE, NArray::SINT, NArray::INT, 
+       NArray::SFLOAT, or NArray::FLOAT</li>
+</ul></dd>
+</dl>
+<h3><a name="label:56" id="label:56">インスタンスメソッド</a></h3><!-- RDLabel: "インスタンスメソッド" -->
+<dl>
+<dt><h4><a name="label:57" id="label:57"><code>dim(<var>dim_num</var>)</code></a></h4></dt><!-- RDLabel: "dim" -->
+<dd>
+<p>その変数における dim_num 番目(0から数える)の次元を問合わせる。</p>
+<p>引数</p>
+<ul>
+<li>dim_num (Fixnum) : 0,1,2,...。最も速く回る次元が0。</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>NetCDFDimオブジェクト</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>(nc_inq_vardimid利用)</li>
+</ul></dd>
+<dt><h4><a name="label:58" id="label:58"><code>dims</code></a></h4></dt><!-- RDLabel: "dims" -->
+<dd>
+<p>その変数の全次元を配列にいれて返す</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>NetCDFDimオブジェクトのArray</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_vardimid</li>
+</ul></dd>
+<dt><h4><a name="label:59" id="label:59"><code>shape_ul0</code></a></h4></dt><!-- RDLabel: "shape_ul0" -->
+<dd>
+<p>変数の形を返す. 但し無制限次元の長さはゼロ.
+他の変数の定義に便利.</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>Array. [0次元目の長さ, 1次元目の長さ,.. ]</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>(nc_inq_vardimid, nc_inq_unlimdim 等を利用)</li>
+</ul></dd>
+<dt><h4><a name="label:60" id="label:60"><code>shape_current</code></a></h4></dt><!-- RDLabel: "shape_current" -->
+<dd>
+<p>変数の現在の形を返す.</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>Array. [0次元目の長さ, 1次元目の長さ,.. ]</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>(nc_inq_vardimid 等を利用)</li>
+</ul></dd>
+<dt><h4><a name="label:61" id="label:61"><code>each_att{ ... }</code></a></h4></dt><!-- RDLabel: "each_att" -->
+<dd>
+<p>変数中の全属性(NetCDFAtt)に関するイテレータ</p>
+<p>引数</p>
+<ul>
+<li>{ ... }  : 繰り返すブロック</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>self</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>(nc_inq_natts, nc_inq_attnameを利用)</li>
+</ul></dd>
+<dt><h4><a name="label:62" id="label:62"><code>dim_names</code></a></h4></dt><!-- RDLabel: "dim_names" -->
+<dd>
+<p>変数中の全次元の名前を配列に入れて返す。</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>String の Array</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>(nc_inq_varndims, nc_inq_vardimid, nc_inq_dimname を利用)</li>
+</ul></dd>
+<dt><h4><a name="label:63" id="label:63"><code>att_names</code></a></h4></dt><!-- RDLabel: "att_names" -->
+<dd>
+<p>変数中の全属性の名前を配列に入れて返す。</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>String の Array</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>(nc_inq_natts, nc_inq_attnameを利用)</li>
+</ul></dd>
+<dt><h4><a name="label:64" id="label:64"><code>name</code></a></h4></dt><!-- RDLabel: "name" -->
+<dd>
+<p>変数の名前を返す</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>String</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_varname</li>
+</ul></dd>
+<dt><h4><a name="label:65" id="label:65"><code>name=(<var>variable_newname</var>)</code></a></h4></dt><!-- RDLabel: "name=" -->
+<dd>
+<p>名前を付け替える</p>
+<p>引数</p>
+<ul>
+<li>variable_newname (String) : 新しい名前</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_rename_var</li>
+</ul></dd>
+<dt><h4><a name="label:66" id="label:66"><code>ndims</code></a></h4></dt><!-- RDLabel: "ndims" -->
+<dd>
+<p>次元の数を問う</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>Integer</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_varndims</li>
+</ul></dd>
+<dt><h4><a name="label:67" id="label:67"><code>rank</code></a></h4></dt><!-- RDLabel: "rank" -->
+<dd>
+<p>ndimsのエリアス</p></dd>
+<dt><h4><a name="label:68" id="label:68"><code>ntype</code></a></h4></dt><!-- RDLabel: "ntype" -->
+<dd>
+<p>vartypeの別名</p></dd>
+<dt><h4><a name="label:69" id="label:69"><code>vartype</code></a></h4></dt><!-- RDLabel: "vartype" -->
+<dd>
+<p>変数値の型を問う</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>String ("char","byte","sint","int","sfloat", or "float")</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_vartype</li>
+</ul></dd>
+<dt><h4><a name="label:70" id="label:70"><code>typecode</code></a></h4></dt><!-- RDLabel: "typecode" -->
+<dd>
+<p>変数値の型を問う(NArrayのtypecodeで返す)</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>Fixnumオブジェクト (NArray:BYTE, NArray:SINT, NArray:LINT, NArray:SFLOAT, NArray:SFLOAT, NArray:DFLOAT)</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_vartype</li>
+</ul></dd>
+<dt><h4><a name="label:71" id="label:71"><code>natts</code></a></h4></dt><!-- RDLabel: "natts" -->
+<dd>
+<p>属性の数を問う</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>Integer</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_varnatts</li>
+</ul></dd>
+<dt><h4><a name="label:72" id="label:72"><code>file</code></a></h4></dt><!-- RDLabel: "file" -->
+<dd>
+<p>その変数が属するファイルを問合わせる</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>NetCDFクラスのオブジェクト</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>なし</li>
+</ul></dd>
+<dt><h4><a name="label:73" id="label:73"><code>att(<var>attribute_name</var>)</code></a></h4></dt><!-- RDLabel: "att" -->
+<dd>
+<p>名前を指定した属性を返す</p>
+<p>引数</p>
+<ul>
+<li>attribute_name (String) : 取り出す属性名</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>NetCDFAttオブジェクト. 存在しなければnil</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>(nc_inq_attidを検査に利用)</li>
+</ul></dd>
+<dt><h4><a name="label:74" id="label:74"><code>put_att(<var>attribute_name</var>, <var>value</var>, <var>atttype</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "put_att" -->
+<dd>
+<p>属性を設定</p>
+<p>引数</p>
+<ul>
+<li>attribute_name (String) : attribute名</li>
+<li>value (Numeric, String, Array of Numeric, or NArray) : 設定する値</li>
+<li>atttype (nil or String) : 属性の型.
+       "char"(="string"),"byte", "sint","int","sfloat", "float" (それ
+       ぞれ,1,1,2,4,4,8 バイト)) または nil (つまりお任せ)</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>NetCDFAttのオブジェクト</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_put_att_&lt;type&gt;</li>
+</ul></dd>
+<dt><h4><a name="label:75" id="label:75"><code>put(<var>value</var>, <var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "put" -->
+<dd>
+<p><a href="#label:76">simple_put</a>の別名(alias)</p></dd>
+<dt><h4><a name="label:76" id="label:76"><code>simple_put(<var>value</var>, <var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "simple_put" -->
+<dd>
+<p>値を入れる</p>
+<p>引数</p>
+<ul>
+<li>value : 入れる値 (Numeric,Array(Numericの1次元配列)、NArray)
+       スカラー(Numeric)または長さ１の場合は、その値を一様に設定する。</li>
+<li><p>option (Hash) : 変数の一部分を指定するためのオプション引数。省
+       略すれば、変数全体が対象となる。ハッシュのキーとしては、
+       "start","end","stride"の組、または"index"が使用できる。"index"
+       は1要素（スカラー）を指す。"end","stride"は省略可。省略するにし
+       ろしないにしろ、書きこむべき要素の数が valueのそれと一致するようにし
+       なければならない。start,end,indexではArrayの場合と同様、負の値で後ろ
+       からの位置を指定できる。"stride"は正の値のみ受け付けるので、配
+       列を引っくり返したければ後から別途やることになる。</p>
+<p>例： 変数が2次元の場合:</p>
+<p>{"start"=&gt;[2,5],"end"=&gt;[6,-1],"stride"=&gt;[2,4]} -- 第1次元目は、
+要素 2 から 6 まで 1 つおき (0から数えるので要素 2 は 3 番目であ
+ることに注意)、第2次元目は、要素 6 から 最後(=-1)まで 3 つおき
+にとったサブセット。</p>
+<p>{"index"=&gt;[0,0]}: 最初の要素にあた
+るスカラー値</p>
+<p>{"index"=&gt;[0,-2]}: 1次元目は最初, 2次元目は最後から2番目にあた
+るスカラー値</p></li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_put_var_&lt;type&gt;, nc_put_vars_&lt;type&gt;, nc_put_var1_&lt;type&gt;</li>
+</ul></dd>
+<dt><h4><a name="label:77" id="label:77"><code>pack(<var>na</var>)</code></a></h4></dt><!-- RDLabel: "pack" -->
+<dd>
+<p>selfの属性 scale_factor and/or add_offset を用いて NArray 等を "pack" する.</p>
+<p>もしも scale_factor and/or add_offset が設定されていれば
+(na-add_offset)/scale_factor を返す。そうでなければ na を返す。</p>
+<p>引数</p>
+<ul>
+<li>na : pack する数値配列 (NArray, NArrayMiss, Array)</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>a NArray or NArrayMiss</li>
+</ul></dd>
+<dt><h4><a name="label:78" id="label:78"><code>scaled_put(<var>value</var>, <var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "scaled_put" -->
+<dd>
+<p><a href="#label:76">simple_put</a> と同様だが、<a href="#label:77">pack</a>により属性 scale_factor と add_offset を解釈する</p>
+<p>引数等については put の解説を参照のこと</p></dd>
+<dt><h4><a name="label:79" id="label:79"><code>get(<var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "get" -->
+<dd>
+<p><a href="#label:80">simple_get</a>の別名(alias)</p></dd>
+<dt><h4><a name="label:80" id="label:80"><code>simple_get(<var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "simple_get" -->
+<dd>
+<p>値を取り出す</p>
+<p>引数</p>
+<ul>
+<li>option (Hash) : 変数の一部分を指定するためのオプション引数。仕
+       様は put に同じ。</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>NArrayクラスのオブジェクト</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_get_var_&lt;type&gt;, nc_get_vars_&lt;type&gt;, nc_get_var1_&lt;type&gt;</li>
+</ul></dd>
+<dt><h4><a name="label:81" id="label:81"><code>unpack(<var>na</var>)</code></a></h4></dt><!-- RDLabel: "unpack" -->
+<dd>
+<p>selfの属性 scale_factor and/or add_offset を用いて NArray 等を "unpack" する.</p>
+<p>もしも scale_factor and/or add_offset が設定されていれば
+na * scale_factor + add_offset を返す。そうでなければ na を返す。
+coerce によって型が変化する -- 例えば、もし na が sint で
+scale_factor と add_offset が sfloat であれば、返り値は sfloat
+になる。返り値の型は <a href="#label:54">NetCDFVar.unpack_type=</a> を使って
+陽に指定することもできる。</p>
+<p>引数</p>
+<ul>
+<li>na : unpack する数値配列 (NArray, or NArrayMiss)</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>a NArray or NArrayMiss</li>
+</ul></dd>
+<dt><h4><a name="label:82" id="label:82"><code>scaled_get(<var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "scaled_get" -->
+<dd>
+<p><a href="#label:80">simple_get</a> と同様だが、<a href="#label:81">unpack</a>により属性 scale_factor と add_offset を解釈する</p>
+<p>引数等については put の解説を参照のこと</p></dd>
+<dt><h4><a name="label:83" id="label:83"><code>[]</code></a></h4></dt><!-- RDLabel: "[]" -->
+<dd>
+<p>NetCDFVar#get と同様だが、サブセットを NArray#[] と同様に指定する. </p>
+<p>NArrayでサポートされているサブセット指定方法に加えて、ステップ付
+きの範囲を指定できる。これは {0..-1,2} などとする。つまり、要素
+数が１のハッシュのキーに範囲(Range)、値にステップ(Integer)を指定
+する。NArrayと違い、２次元以上の変数を１次元のインデックスで
+指定することは出来ない。</p></dd>
+<dt><h4><a name="label:84" id="label:84"><code>[] = </code></a></h4></dt><!-- RDLabel: "[]=" -->
+<dd>
+<p>NetCDFVar#put と同様だが、サブセットを NArray#[]= と同様に指定する. </p>
+<p>NArrayでサポートされているサブセット指定方法に加えて、ステップ付
+きの範囲を指定できる。これは {0..-1,2} などとする。つまり、要素
+数が１のハッシュのキーに範囲(Range)、値にステップ(Integer)を指定
+する。NArrayと違い、２次元以上の変数を１次元のインデックスで
+指定することは出来ない。</p></dd>
+</dl>
+<h3><a name="label:85" id="label:85">"numru/netcdf_miss" を require することで追加されるインスタンスメソッド</a></h3><!-- RDLabel: ""numru/netcdf_miss" を require することで追加されるインスタンスメソッド" -->
+<dl>
+<dt><h4><a name="label:86" id="label:86"><code>get_with_miss(<var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "get_with_miss" -->
+<dd>
+<p><a href="#label:79">get</a>と同様だが、データ欠損を処理する</p>
+<p>データ欠損は標準属性 valid_range, (valid_min and/or valid_max), 
+または missing_value により指定される。解釈の優先順位はこの順番で
+ある。「ユーザーズガイド」の推奨と違い、ここでは missin_value も
+解釈される。もし missing_value と valid_* が同時に存在する場合、
+missng_value は有効データ範囲外にあってはならない。その場合、例外
+が発生する。</p>
+<p>上記のようにもしデータ欠損（の仕方）が指定されていれば、このメソッ
+ドは NArrayMiss オブジェクトを返す。そうでなければ NArray を返す。</p>
+<p>引数</p>
+<ul>
+<li><a href="#label:79">get</a>を見よ.</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>NArrayMissオブジェクト (データ欠損が指定さている場合) または NArray
+       オブジェクト (データ欠損が指定さてない場合)</li>
+</ul>
+<p>NetcdfError 以外の例外発生</p>
+<ul>
+<li>missing_value がデータ有効範囲にない (上記参照のこと).</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li><a href="#label:79">get</a> を見よ. このメソッドは Ruby のみで書かれている. </li>
+</ul>
+<p>例</p>
+<ul>
+<li><p>次の例では <a href="#label:79">get</a> を <a href="#label:86">get_with_miss</a> を置き換えている.
+       こうすると <a href="#label:83">[]</a> もデータ欠損を解釈するようになる (内部で 
+       <code>get</code> を呼んでるので).</p>
+<pre>file = NetCDF.open('hogehoge.nc')
+var = file.var('var')
+def var.get(*args); get_with_miss(*args); end
+p var.get       # --&gt; inteprets data missing if defined
+p var[0..-1,0]  # --&gt; inteprets data missing if defined (assumed 2D)</pre></li>
+</ul></dd>
+<dt><h4><a name="label:87" id="label:87"><code>get_with_miss_and_scaling(<var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "get_with_miss_and_scaling" -->
+<dd>
+<p><a href="#label:86">get_with_miss</a>と同様だが、<a href="#label:81">unpack</a>によりスケーリングも行う.</p>
+<p>欠損値処理は基本的には pack したデータを対象に行う(これは多くの
+コンベンション採用されている)。ただし、valid_* / missing_value
+の型が pack したデータの型と異なり、かつ unpackしたデータの型と
+一致するとき（に限り） unpack したデータを対象とする。
+これで基本的に全てのコンベンションに対応できる。</p>
+<p>例</p>
+<ul>
+<li>上記参照。同じことができる。</li>
+</ul></dd>
+<dt><h4><a name="label:88" id="label:88"><code>put_with_miss(<var>value</var>, <var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "put_with_miss" -->
+<dd>
+<p><a href="#label:75">put</a>と同様だが、データ欠損を処理する</p>
+<p>もしも <code>value</code> が NArray なら、このメソッドは <a href="#label:75">put</a> に同
+じ. もし<code>value</code> が NArrayMiss でかつ self の属性によりデータ欠損が
+定義されていれば (<a href="#label:86">get_with_miss</a>を参照のこと)、<code>value</code> 
+中のデータ欠損が解釈される。即ち、<code>value</code>中の欠損データは、
+ある欠損値 (missing_value または _FillValue またはデータ有効範囲
+外の適当な値) に置き換えられた上でファイルに書き込まれる。
+<code>value</code> 中の非欠損データが <code>self</code> における有効範囲に入って
+いるかどうかはチェックされない。</p>
+<p>引数</p>
+<ul>
+<li>value : NArrayMiss または <a href="#label:75">put</a> で許されているクラスのオブジェクト.</li>
+<li>option (Hash) : <a href="#label:75">put</a> を見よ.</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li><a href="#label:75">put</a> を見よ. このメソッドは Ruby のみで書かれている. </li>
+</ul>
+<p>例</p>
+<ul>
+<li><p>次の例では <a href="#label:75">put</a> を <a href="#label:88">put_with_miss</a> を置き換えている.
+       こうすると <a href="#label:84">[]=</a> もデータ欠損を解釈するようになる (内部で 
+       <code>put</code> を呼んでるので).</p>
+<pre>file = NetCDF.open('hogehoge.nc')
+var = file.var('var')
+def var.put(*args); put_with_miss(*args); end
+var.put = narray_miss      # --&gt; inteprets data missing if defined
+var[0..-1,0] = narray_miss # --&gt; inteprets data missing if defined (assumed 2D)</pre></li>
+</ul></dd>
+<dt><h4><a name="label:89" id="label:89"><code>put_with_miss_and_scaling(<var>value</var>, <var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "put_with_miss_and_scaling" -->
+<dd>
+<p><a href="#label:88">put_with_miss</a>と同様だが、<a href="#label:77">pack</a>によりスケーリングも行う.</p>
+<p>欠損値処理は基本的には pack したデータを対象に行う(これは多くの
+コンベンション採用されている)。ただし、valid_* / missing_value
+の型が pack したデータの型と異なり、かつ unpackしたデータの型と
+一致するとき（に限り） unpack したデータを対象とする。
+これで基本的に全てのコンベンションに対応できる。</p>
+<p>例</p>
+<ul>
+<li>上記参照。同じことができる。</li>
+</ul></dd>
+</dl>
+<p>---------------------------------------------</p>
+<h1><a name="label:90" id="label:90">クラス NetCDFAtt</a></h1><!-- RDLabel: "クラス NetCDFAtt" -->
+<h3><a name="label:91" id="label:91">クラスメソッド</a></h3><!-- RDLabel: "クラスメソッド" -->
+<h3><a name="label:92" id="label:92">インスタンスメソッド</a></h3><!-- RDLabel: "インスタンスメソッド" -->
+<dl>
+<dt><h4><a name="label:93" id="label:93"><code>name</code></a></h4></dt><!-- RDLabel: "name" -->
+<dd>
+<p>属性の名前を返す</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>String</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>なし</li>
+</ul></dd>
+<dt><h4><a name="label:94" id="label:94"><code>name=(<var>attribute_newname</var>)</code></a></h4></dt><!-- RDLabel: "name=" -->
+<dd>
+<p>属性の名前を変更</p>
+<p>引数</p>
+<ul>
+<li>attribute_newname (String) : 新しい名前</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_rename_att</li>
+</ul></dd>
+<dt><h4><a name="label:95" id="label:95"><code>copy(<var>var_or_file</var>)</code></a></h4></dt><!-- RDLabel: "copy" -->
+<dd>
+<p>属性を別の変数またはファイルにコピー。ファイルの場合はグローバル属性になる</p>
+<p>引数</p>
+<ul>
+<li>var_or_file (NetCDFVar or NetCDF)</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>コピーして作られた属性 (NetCDFAtt)</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_copy_att</li>
+</ul></dd>
+<dt><h4><a name="label:96" id="label:96"><code>delete</code></a></h4></dt><!-- RDLabel: "delete" -->
+<dd>
+<p>属性を削除</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_del_att</li>
+</ul></dd>
+<dt><h4><a name="label:97" id="label:97"><code>put(<var>value</var>, <var>atttype</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "put" -->
+<dd>
+<p>属性の値を設定</p>
+<p>引数</p>
+<ul>
+<li>value (Numeric, String, Array of Numeric, or NArray) : 入れる値</li>
+<li>atttype (nil or String) : 属性の型.
+       "char"(="string"),"byte", "sint","int","sfloat", "float" (それ
+       ぞれ,1,1,2,4,4,8 バイト)) または nil (つまりお任せ)</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_put_att_&lt;type&gt;</li>
+</ul></dd>
+<dt><h4><a name="label:98" id="label:98"><code>get</code></a></h4></dt><!-- RDLabel: "get" -->
+<dd>
+<p>属性の中身を取り出す</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>文字列またはNArrayオブジェクト (注意: スカラーの場合も長さ1の</li>
+</ul></dd>
+</dl>
+<pre>NArrayになる)</pre>
+<pre>対応する(利用する) C 版 NetCDF の関数
+*  nc_get_att_&lt;type&gt;</pre>
+<dl>
+<dt><h4><a name="label:99" id="label:99"><code>atttype</code></a></h4></dt><!-- RDLabel: "atttype" -->
+<dd>
+<p>属性値の型を問う</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>"char","byte","sint","int","sfloat","float"</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_atttype</li>
+</ul></dd>
+<dt><h4><a name="label:100" id="label:100"><code>typecode</code></a></h4></dt><!-- RDLabel: "typecode" -->
+<dd>
+<p>属性値の型を問う(NArrayのtypecodeで返す)</p>
+<p>引数</p>
+<ul>
+<li>なし</li>
+</ul>
+<p>戻り値</p>
+<ul>
+<li>Fixnumオブジェクト (NArray:BYTE, NArray:SINT, NArray:LINT, NArray:SFLOAT, NArray:SFLOAT, NArray:DFLOAT)</li>
+</ul>
+<p>対応する(利用する) C 版 NetCDF の関数</p>
+<ul>
+<li>nc_inq_atttype</li>
+</ul></dd>
+</dl>
+
+</body>
+</html>

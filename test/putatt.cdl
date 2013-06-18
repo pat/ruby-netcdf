@@ -1,0 +1,23 @@
+netcdf tmp {
+dimensions:
+	x = 5 ;
+variables:
+	float x(x) ;
+		x:long_name = "test variable" ;
+		x:int_att = 123s ;
+		x:float_att = 0.333333333333333 ;
+		x:float_array = 0.1, 0.2, 30. ;
+		x:sfloat_narray = 0.f, 0.3333333f, 0.6666667f ;
+		x:float_narray = 0., 1., 2. ;
+		x:sint_narray = 0s, 1s, 2s ;
+		x:int2float = 10. ;
+		x:changed = "changed to text" ;
+
+// global attributes:
+		:history = "2001-12-23" ;
+		:int_att = 123s ;
+		:sfloat_att = 0.3333333f ;
+data:
+
+ x = _, _, _, _, _ ;
+}

@@ -1,0 +1,62 @@
+Installation 
+
+0. The following must have been installed in advance.
+
+  * Ruby, of course <http://www.ruby-lang.org/en/download.html>.
+
+  * NArray: a multi-dimensional numeric array class for Ruby. 
+    <http://www.ruby-lang.org/en/raa-list.rhtml?name=NArray>
+
+
+  * NetCDF ver 3. <http://www.unidata.ucar.edu/packages/netcdf/>
+    (Fortran and C++ interfaces are not needed, so you
+    can ignore it if their installation does not succeed.)
+
+  * (OPTIONAL) NArrayMiss, which is require to use
+    NetCDFVar#get_with_miss etc by 
+
+      require 'numru/netcdf_miss'
+ 
+    NArrayMiss does not have to be installed in advance.
+
+1. Change to the top directory such as by:
+
+      % cd ruby-netcdf-0.5.3
+
+    Here, "%" is a "prompt". Do not type it.
+    The directory name depends on the version of RubyNetCDF
+
+2. Configure your setting to create Makefile.
+
+      % ruby extconf.rb           
+
+    NOTE: By default, the two headers narray.h and narray_config.h
+    in the narraypackage are assumed to have been copied to
+    $(sitearchdir), which is normally 
+    /usr/local/lib/ruby/site_ruby/1.6/$(arch)/ if you are using Unix,
+    where $(arch) is something like sparc-solaris2.6, a combination of
+    CPU and OS. To specify the directory that contains these files
+    explicitly, use instead the following:
+
+      % ruby extconf.rb --with-narray-include=/narraydir/include
+
+    Similarly, you can specify the directory you installed netcdf
+    with the following:
+
+      % ruby extconf.rb --with-netcdf-include=/netcdfdir/include \
+                        --with-netcdf-include=/netcdfdir/lib
+    or 
+
+      % ruby extconf.rb --with-netcdf-dir=/netcdfdir
+
+3. Compile source codes and create a shared library.
+
+      % make                      
+
+4. Optionally, you can run a test program by the following:
+
+      % make test
+
+5. Installs it into your site-specific library path for Ruby.
+
+      % make site-install

@@ -1,0 +1,14 @@
+
+* demo1-create.rb	a basic test of file creation.
+			creates a file and prints its contents.
+* demo1-create-alt.rb	an alternative way to write demo1-create.rb
+* demo2-graphic.rb	creates a file and close it. Then reopens and
+			visualize it using AdvancedDCL
+			(AdvancedDCL at http://www.gfd-dennou.org/arch/ruby/
+			must have been installed)
+
+* demo3-ncepclim.rb	plots arbitrary 2D slices the 4D distribution of
+			global temperature climatology from
+			the NCEP reanalysis data. The data (8MB) is downloaded
+			by anonymous ftp if not found in the user's
+			run-time directory and he or she wants it.

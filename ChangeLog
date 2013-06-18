@@ -1,0 +1,396 @@
+Sun Feb 19  2011  T Horinouchi
+	* ruby-netcdf-0.6.6 released (relase tag: ruby-netcdf-0_6_6)
+	* lib/netcdf.rb: method pack: debug of enbug made 
+	  when 1.1 -> 1.2 (cvs tag) commited in Jan 2010.
+	* netcdfraw.c: Added macro NC_RAISE2. Enhanced error 
+	  messaging in NetCDF_open and NetCDF_create to show file name.
+
+Thu Feb 17  2011  T Horinouchi
+	* ruby-netcdf-0.6.5 released (relase tag: ruby-netcdf-0_6_5)
+Thu Feb 17  2011  T Horinouchi
+	* extconf.rb: Debug to have the --disable-opendap option really work
+Sat Feb 12  2011  T Horinouchi
+	* ruby-netcdf-0.6.5 preview release.
+Thu Dec 23  2010  T Koshiro
+	* test/aref_aset.rb : updated for Ruby 1.9.2
+	* lib/netcdf.rb: NetCDF.clean_tmpfile : lambda -> proc
+	* verified that all test programs work fine with Ruby 1.9.2.
+
+Tue Dec 14  2010  T Koshiro
+	* netcdfraw.c : nctype2natype : char* -> const char*
+	* test/aref_aset.rb, test/factor_offset.rb : bug fix.
+
+Mon Dec 13  2010  T Koshiro
+	* netcdfraw.c : patch for Ruby 1.9.2
+	  - by S Kouketsu (dennou-ruby:003191)
+	  - by T Koshiro  (dennou-ruby:003226)
+
+Mon Mar 15  2010  T Horinouchi
+	* ruby-netcdf-0.6.4 released (relase tag: ruby-netcdf-0_6_4)
+
+Thu Jan 14  2010  T Horinouchi < T Koshiro
+	* netcdfraw.c : patch for Ruby 1.9.1 (dennou-ruby:003138)
+	* extconf.rb : patch for NetCDF-4.1-beta2 (dcdvlop Nov 20, 2009)
+
+Fri Aug 15  2008  T Horinouchi
+	* lib/netcdf_miss.rb: in __interpret_missing_params,
+	  changed just to warn, not to raise an exception,
+	  if the missing value or fill value is within the
+	  valid range (warning can be suppressed by $VERBOSE = nil)
+Thu Jul 17  2008  T Horinouchi
+	* lib/netcdf.rb: NetCDFVar's private method pack : to take
+	  round if the type of self is integer.
+	* lib/netcdf_miss.rb: debug in the handling of missing data 
+	  specification using the external data type. 
+Wed Jul 16  2008  T Horinouchi < M Otsuka
+	*  netcdfraw.c : patch for Ruby 1.9
+Tue Dec 25  2007  T Horinouchi
+	* ruby-netcdf-0.6.3 released
+	* netcdfra.c : (kind of) bugfix. (default attribute type for
+	  Fixnum and Bignum was changed from NA_SINT to NA_LINT).
+	* lib/netcdf_miss.rb: improved to judge missing_value validity
+	  considering its typecode.
+Thu Jun 30  2005
+	* netcdf.rb: NetCDFVar#[] : debug for Array/NArray indices
+Thu Jun 23  2005  T Horinouchi < S Koshiro
+	* ruby-netcdf-0.6.2 re-released (I am really sorry about that)
+	* extconf.rb: updated to configure the prefix for DODS (useful if
+	  the DODS is installed in a non-standard path)
+Wed Jun 22  2005  T Horinouchi
+	* ruby-netcdf-0.6.2 released
+	* extconf.rb: updated to support opendap 3.5
+Fri May 13  2005  T Horinouchi
+	* ruby-netcdf-0.6.1 released
+Mon Apr 11 2005  Takeshi Horinouchi 
+	* netcdfraw.c: changed global variables such as mNumRu to file locale.
+Tue Mar 15 2005  Takeshi Horinouchi 
+	* netcdfraw.c: debug: changed the type of c_stride from size_t to
+	  ptrdiff_t. Removed unsuned variables.
+Mon Mar 14 2005  Takeshi Horinouchi 
+	* ruby-netcdf-0.6.0 released
+	* netcdfraw.c: NetCDF_get_var*_*: debug for rank-zero scalar
+	  NetCDFVar. It used to SEGV.
+	  NetCDF_get_var_*, which reads the whole variable,
+ 	  is modified to return in a NArray of shape==[1].
+	  On the other hand, subset reading by NetCDF_get_var[s1]_*
+	  is prohibited for rank-zero scalars by raising an exception.
+	* lib/netcdf.rb: minor modification in [], to support its call
+	  without arguments of a rank-zero scalar.
+	* netcdfraw.c: debug: changed size_t to int when NArray functions
+	  are called (for 64-bit machines).
+	* extconf.rb: minor change in opendap configuration.
+Thu Mar 10 2005  Takeshi Horinouchi 
+	* extconf.rb: to link OPeNDAP/DODS-enabled version of NetCDF
+	  if available and if --disable-opendap is not specified.
+	* lib/netcdf.rb: created pack and unpack by separating from
+	  scaled_put and scaled_get, respectvely. Changed type to
+	  unpack in to follow the coerce mechanism, so the upacked
+	  type depend on the type of scale_factor and add_offset.
+          Renamed NetCDFVar.scaled_get_type[=] to NetCDFVar.unpack_type[=].
+        * lib/netcdf_miss.rb: revised [put|get]_with_miss_and_scaling:
+	  Now, missing data handling using valid_* / missing_value is applied 
+          basically to packed data, which is consistent with most
+          conventions. However, it is applied to unpacked data 
+          if and only if the type of valid_* / missing_value is not the same as
+          the packed data and is the samed as the unpacked data.
+        * doc/ Updated in response to the modification.
+Mon Jun  7 2004  Takeshi Horinouchi 
+	* ruby-netcdf-0.5.5 released
+Wed Apr 28 2004  Takeshi Horinouchi < S. Nishizawa
+	* lib/netcdf.rb: minor debug in [](l.662) and []= (l.733 & l.736)
+	  to avoid error with NArrayMiss.
+Mon Mar  8 2004  Takeshi Horinouchi 
+	* ruby-netcdf-0.5.4 released
+	* lib/netcdf.rb: created NetCDFVar.scaled_get_type= and
+	  NetCDFVar.scaled_get_type
+Mon Feb 23 2004  Takeshi Horinouchi 
+	* lib/netcdf_miss.rb: debug in __interpret_missing_params
+Tue Oct 28 2003  Takeshi Horinouchi 
+	* lib/netcdf.rb: support empty [], []=.  Debug in []=.
+Fri Oct  2 2003  Takeshi Horinouchi 
+	* ruby-netcdf-0.5.3 released
+	* lib/netcdf.rb: (by S Nishizawa) enhanced NetCDF#[]= to support 
+	  array indices.
+	* lib/netcdf.rb: supported the rubber dimension (=false) in
+	  NetCDF#[] and NetCDF#[]=.
+	* doc/*rd: updated for NetCDF#[] and NetCDF#[]=
+	* INSTALL: updated
+Thu Oct  2 2003  Takeshi Horinouchi < S Nishizawa
+	* lib/netcdf.rb: enhanced NetCDF#[] to support array indices.
+Tue Sep 23 2003  Takeshi Horinouchi
+	* extconf.rb: debug for windows (by T Koshiro)
+	* lib/netcdf_miss.rb: debug get_with_miss_*
+Wed Aug 27 2003  Takeshi Horinouchi
+	* ruby-netcdf-0.5.2 released
+	* Verified that all test programs work fine with Ruby 1.8.0.
+	* netcdfraw.c: functions NetCDF_dim, NetCDF_var (methods
+	  NetCDF#dim, NetCDF#var). Changed behavior back to return nil
+	  if not found (by name), as opposed to the change on Feb 3 2003.
+	  Debug NetCDF_att_rename (NetCDFAtt#name=).
+	  Init_netcdfraw: No longer asks whether NumRu has been
+	  defined -- ok for Ruby 1.6.5 or so or later
+	* doc/Ref_man.rd,doc/Ref_man_jp.rd: updated for the changes above
+	* test/test.rb updated for the debug of NetCDFAtt#name=.
+	* lib/netcdf.rb: editted NetCDF#vars and NetCDF#dims not to change
+	  the behavior despite the change above. Corrected exception types
+	  to raise where needed.
+Tue Aug 19 2003  Takeshi Horinouchi
+	* demo/demo4-copy.rb: created
+Tue Aug 12 2003  Takeshi Horinouchi
+	* ruby-netcdf-0.5.1 released
+	* extconf.rb: do not edit "install:" anymore (for Ruby 1.8; works
+	  with 1.6 too.) / Debug
+	* doc/Ref_man.rd,doc/Ref_man_jp.rd: corrected a few typos.
+
+Tue Aug 12 2003  Takeshi Horinouchi
+	* ruby-netcdf-0.5.0 released
+	* lib/netcdf_miss.rb: created. handles data missing by NArrayMiss.
+	* doc/Ref_man.rd,doc/Ref_man_jp.rd: updated.
+
+Mon Aug 11 2003  Takeshi Horinouchi
+	* extconf.rb: modification to cover Cygwin
+	* netcdfraw.c: extern -> EXTERN
+	* lib/netcdf.rb: renamed get|put as simple_(get|put) and
+	  made get|put aliased to them. Changed scaled_(get|put)
+ 	  to depend on simple_(put|get). This is to allow the user
+	  to redefine get|put, if he/she likes, as:
+	     alias get scaled_get
+	     alias put scaled_put
+	  Or (by using singleton methods)
+	     def a_ncvar.get(*arg)
+	       scaled_get(*arg)
+	     end
+	     def a_ncvar.put(*arg)
+	       scaled_put(*arg)
+	     end
+	  Now these do not cause recurrence. By doing so, one can 
+	  also change the behavior of [] and []=.
+
+Sat Mar 24 2003  Takeshi Horinouchi
+	* ruby-netcdf-0.4.0 released
+Sat Mar 22 2003  Takeshi Horinouchi
+	* lib/netcdf.rb: NetCDFVar#[]: behavior changed -- to eliminate the
+	  dimensions designated by Integer's (for better agreement with
+ 	  NArray#[])
+	* doc/: correct the description of the IO mode for NetCDF.open
+Fri Mar 21 2003  Takeshi Horinouchi
+	* ruby-netcdf-0.3.9 released
+Wed Mar 19 2003  Takeshi Horinouchi
+	* netcdfraw.c: changed return values of NetCDF#redef and NetCDF#enddef
+	  (NetCDF_redef, NetCDF_enddef) --- return true if succesful and
+	  nil if not (the latter means that the file is already in
+	  define mode for redef and that it is already in the data mode
+	  for enddef). Previously, these methods always retuned nil.
+	* doc/: updated
+	* lib/netcdf.rb: DEBUG [] and []= : treatment of the end of ranges.
+Tue Mar 18 2003  Takeshi Horinouchi
+	* netcdfraw.c: added NetCDF#define_mode?
+	  (NetCDF_whether_in_define_mode)
+Mon Mar 17 2003  Takeshi Horinouchi
+	* ruby-netcdf-0.3.8 released
+	* netcdfraw.c: deleted function NetCDF_put_var1_long, which was
+	  unnecessary (not called by anything).
+	* netcdfraw.c: added methods NetCDFVar#typcode, NetCDFAtt#typcode
+	  (functions NetCDF_var_typecode, NetCDF_att_typecode)
+	* netcdfraw.c: NetCDFVar#def_var(NetCDF_def_var) functionarity enhanced
+	  to accept NArray's typcodes to specifiy a variable type (vartye).
+	* netcdfraw.c:put_var_*(NetCDF_put_var_*),put_vars_*(NetCDF_put_vars_*)
+	  functionality enhanced to accept scalar values to set uniform values
+	* lib/netcdf.rb alias rank ndims (in NetCDFVar)
+	* doc/Ref_man* updated accordingly
+Fri Mar 14 2003  Takeshi Horinouchi
+	* ruby-netcdf-0.3.7 released
+Mon Feb 5 2003  Takeshi Horinouchi
+	* doc/Ref_man.rd,doc/Ref_man_jp.rd  update (added [] and []= methods)
+Mon Feb 3 2003  Takeshi Horinouchi
+	* netcdf.rb: added NetCDF#dims, NetCDF#vars
+	* netcdfraw.f: functions NetCDF_dim, NetCDF_var (methods
+	  NetCDF#dim, NetCDF#var). Changed behavior to raise exception
+	  if not found (by name).
+Thu Jan 30 2003  Takeshi Horinouchi
+	* ruby-netcdf-0.3.6 released
+	* netcdfraw.c: debug NetCDF_free and NetCDF_close  not to close
+	  a file that has already been closed
+	* netcdfraw.c: debug nc_mark_obj -- incorrect typing (though in
+	  many cases innocuous)
+	* demo/: deleted *_withAdvancedDCL.rb (obsolete)
+	
+Tue Jun 11  2002 Takeshi Horinouchi
+	* ruby-netcdf-0.3.5 released
+	* netcdfraw.rb: eliminated references to char *na_typestring[]
+          (to make the source compilable with narray-0.5.6p2)
+	* lib/netcdf.rb: eliminated uri methods: this is for a future
+	  incorpolation of DODS
+	* demo/demo[23]*:written to use RubyDCL directly instead of AdvancedDCL
+
+Tue Feb 26  2002 Takeshi Horinouchi
+	* ruby-netcdf-0.3.4 released
+
+Sun Feb 24  2002 Takeshi Horinouchi
+	* lib/netcdf.rb: NetCDF#open minor debug
+
+Thu Dec  27  2001 Takeshi Horinouchi
+	* extconf.rb: corrected an error message
+
+Thu Dec  26  2001 Takeshi Horinouchi
+	* ruby-netcdf-0.3.3 released
+	* lib/netcdf.rb: changes are made to get around a bug in NArray.
+	  Should be re-changed to the original if the bug is fixed.
+	  (The changed pars are marked by "TEMPORARY CHANGE 2001/12/27" in 
+	  the source code)
+	* netcdfraw.c: debug NetCDF_get_vars_sint
+	* doc/Ref_man*rd: added the usage section.
+
+Thu Dec  26  2001 Takeshi Horinouchi
+	* ruby-netcdf-0.3.2 released
+	* doc/Ref_man*rd: added a "Data Type" section. Plus, some updates
+	* lib/netcdf.rb: added NetCDF#scaled_put and NetCDF#scaled_get
+	* netcdfraw.c,lib/netcdf.rb: added methods to treat the "char" type
+
+Thu Dec  26  2001 Takeshi Horinouchi
+	* ruby-netcdf-0.3.1 released
+	* doc/Ref_man*rd: updated
+	* lib/netcdf/rb: added NetCDF#def_var_with_dim
+	* netcdfraw.c: NetCDF*_eql: debug / do not redefine eql?, since the
+	hash method is not refefined
+	* lib/netcdf/rb: added NetCDFDim#length_ul0
+	* netcdfraw.c: NetCDF#close: error will not be raised on NetcdfBadid
+	* lib/netcdf/rb: added NetCDFVar#shape_current, NetCDFVar#shape_ul0
+	* lib/netcdf/rb: added NetCDF.create_tmp -- temporary file
+	* lib/netcdf/rb: NetCDFVar#uri returns path+'?var='+name instead
+	of path+'?'+name 
+
+Thu Dec  23  2001 Takeshi Horinouchi
+	* ruby-netcdf-0.3.0 released
+	* netcdfraw.c: NetCDFVar#vartype is aliased to NetCDFVar#ntype
+	* INSTALL: updated
+	* extconf.rb: updated thoroughly (better handling of dependent libs)
+	* lib/netcdr.rb: NetCDF.open: changed mode specification --
+	  it became much closer to that for the File class
+          (Also, NetCDF.create was changed a little -- but no effect for users)
+	* netcdfraw.c: NetCDF_open was modified to be a simple wrapper
+	  only of nc_open.
+	* netcdfraw.c: completely renew NetCDF_put_att__ --> NArray available
+	  (accordingly changed are NetCDF_(put_att|put_att_var|att_put), and
+	   lib/netcdf.rb:NetCDF(|Var)#put_att,NetCDFAtt#put)
+	* netcdfraw.c: minor debug -- eliminate global variables rb_cNetCDF*
+	* netcdfraw.c: initialization of mNumRu was improved
+
+Thu Dec  7  2001 Takeshi Horinouchi
+	* ruby-netcdf-0.2.0 released
+	* lib/netcdf.rb: debug NetCDFVar#[], NetCDFVar#[]=
+	* doc/Ref_man[_jp].rd: updated
+	* netcdfraw.c: added clone methods 
+	* netcdfraw.c: added security check
+	    nc_open, nc_create: Check_SafeStr(filename)
+	    file modifying methods: rb_secure(4)
+	    file reading methods: taint return values 
+	* netcdfraw.c: remove unused def of "new" (it's in netcdf.rb)
+
+Thu Dec  6  2001 Takeshi Horinouchi
+	* ruby-netcdf-0.1.10 released
+	* demo/demo2-graphic.rb  adapted to advanceddcl-0.2.0
+	* demo/demo3-ncepclim.rb  minor change
+	* netcdfraw.c: rename mNum as mNumRu; initialize it only at first time
+	* mkdir test/; mv test.rb test/; and updated test.rb (to include NumRu)
+	* correctet ChangeLog
+	
+?? Nov? ??  2001  Naoki Kawanabe (log added by Horinouchi)
+	* netcdf.rb added NetCDFVar#[] and NetCDFVar#[]= 
+
+Sat Nov 16  2001  Takeshi Horinouchi
+	* netcdf.rb: added NetCDFVar.new, NetCDFVar.open (these are the same)
+	
+Sat Nov ??  2001  Naoki Kawanabe (log added by Horinouchi)
+	* ruby-netcdf-0.1.9 released
+	* extconf.rb debug
+
+Sat Nov 03  2001  Naoki Kawanabe
+	* ruby-netcdf-0.1.7 released (memo by Horinouchi: this should be 0.1.8)
+	* changed install directry (require 'netcdf' -> require
+	'numru/netcdf')
+	* added module 'NumRu'
+	* changed class name (NetCDF -> NumRu::NetCDF etc.)
+ 	* demo program renewed
+Thu Oct 25  2001  Takeshi Horinouchi
+
+	* ruby-netcdf-0.1.7 released
+	* doc/Ref_man.rd  Created (English translation)
+	* doc/Ref_man_jp.rd  Revised
+	* netcdfraw.c, NetCDF_att_copy: support file as a destination
+	  (global attribute)
+	
+Thu Oct 23  2001  Takeshi Horinouchi
+
+	* doc/Ref_man_jp.html regenerated from doc/Ref_man_jp.rd
+	* doc/Ref_man_jp.rd  Revised.
+	* doc/Ref_man_jp.rd  index added.
+	
+Thu Oct 23  2001  Takeshi Horinouchi
+
+	* ruby-netcdf-0.1.6 released
+	* NetCDFruby is renamed to RubyNetCDF.
+	  Documents are changed accordingly.
+	* INSTALL was made
+	* Ref_man_jp.rd: a bit modified
+	* documents moved to doc/
+	* Ref_man_jp.[doc|pdf] is renamed to Ref_man_jp_obsolete.[doc|pdf]
+	  Will not be maintained any more.
+	
+Fri Oct 05, 2001  Naoki Kawanabe <kawanabe@kurasc.kyoto-u.ac.jp>
+	
+	* version 0.1.5 released
+	* added Ref_man_jp.rd and Ref_man_jp.html (in Japanese)
+	
+Wed Sep 21, 2001  Takeshi Horiouchi <horinout@kurasc.kyoto-u.ac.jp>
+
+	* version 0.1.4 released
+	* netcdfraw.c: debug  get_var_<type>  correct dimension order
+	* test.rb truely get rid of xmp
+	
+Wed Sep 20, 2001  Takeshi Horiouchi <horinout@kurasc.kyoto-u.ac.jp>
+
+	* version 0.1.3 released
+	* README_JP.txt modified accordingly
+	* extconf.rb modifyed (support the "test" target)
+	* netcdf.rb: debug (NetCDFAtt#put)
+	* netcdfraw.c: debug (NetCDF_put_att, NetCDF_put_att_var)
+	* test.rb --> debug (usage of NetDCFAtt#put)
+	* test.rb --> do not use xmp. Accordingly, xmp.rb is removed from
+	  the package
+	
+Wed Sep 20, 2001  Takeshi Horiouchi <horinout@kurasc.kyoto-u.ac.jp>
+
+	* version 0.1.2 re-released
+	* xmp.rb (an almost standard program) is copied to the top directory
+	* version 0.1.2 released
+	* changed extconf.rb
+	  use standard mkmf.rb
+	  Makefile modified after creation by mkmf
+	* mv netcdf.rb lib/netcdf.rb
+
+Wed Sep 19, 2001  Takeshi Horiouchi <horinout@kurasc.kyoto-u.ac.jp>
+
+	* started ToDo list
+	
+Wed Sep 19, 2001  Takeshi Horiouchi <horinout@kurasc.kyoto-u.ac.jp>
+
+	* version 0.1.1 released
+	* Reference manual (in japanese) updated and renamed to Ref_man_jp*
+	* mkmf.rb changed (*.nc included for cleaning), README_JP.txt
+	  changed accordingly
+	* demo directly added:
+	  demo/demo1-create-alt.rb
+	  demo/demo1-create.rb
+	  demo/demo2-graphic.rb
+	  demo/demo2-graphic_old.rb
+	  demo/demo3-ncepclim.rb
+	* netcdfraw.c: NetCDFDim#unlimdim? added
+	* (acutally on Sep 12) netcdf.rb: NetCDFVar#put_att added
+	  NetCDF#put_att debug
+	* (acutally on Sep 12) netcdfraw.c: a number of debug,
+	  NetCDF_put_att_var (NetCDFVar#put_attraw) added
+	
+Wed Sep 19, 2001  Toshihiro Sakakima <sakakima@kurasc.kyoto-u.ac.jp>
+
+	* version 0.01 released

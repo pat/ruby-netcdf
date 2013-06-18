@@ -1,0 +1,7 @@
+#!/bin/csh
+nkf -e Ref_man_jp.rd | rd2  | \
+      sed -e 's/<dt>/<dt><h4>/' -e 's/<\/dt>/<\/h4><\/dt>/' \
+      >! Ref_man_jp.html
+rd2 Ref_man.rd  | \
+      sed -e 's/<dt>/<dt><h4>/' -e 's/<\/dt>/<\/h4><\/dt>/' \
+      >! Ref_man.html

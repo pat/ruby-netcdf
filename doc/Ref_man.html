@@ -1,0 +1,1482 @@
+<?xml version="1.0" ?>
+<!DOCTYPE html 
+  PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Ref_man.rd</title>
+</head>
+<body>
+<h1><a name="label:0" id="label:0">RubyNetCDF Reference Manual</a></h1><!-- RDLabel: "RubyNetCDF Reference Manual" -->
+<ul>
+<li><a href="#label:9">Method Index</a></li>
+</ul>
+<p>---------------------------------------------</p>
+<h2><a name="label:1" id="label:1">Overview</a></h2><!-- RDLabel: "Overview" -->
+<p>RubyNetCDF is the Ruby interface of the NetCDF library. Ruby is a free 
+object-oriented scripting language and is freely available from
+<a href="http://www.ruby-lang.org/">the Ruby homepage</a>. 
+To handle numeric data, RubyNetCDF uses
+<a href="http://www.ruby-lang.org/en/raa-list.rhtml?name=NArray">NArray</a>, which is the standard numeric multi-dimensional array class
+for Ruby. Thus, you have to have installed it before installing this library.
+An NArray object holds numeric data in a consecutive memory area
+pointed by a C pointer. Thus, it is computationally efficient.
+NArray is similar to NumPy for Python, but results of some benchmark
+tests suggests that NArray is more efficient than NumPy.
+Optionally, RubyNetCDF offers methods to handle data missing 
+automatically. To use it, you will also
+need <a href="http://ruby.gfd-dennou.org/products/narray_miss/">NArrayMiss</a>. 
+See <a href="#label:6">Usage</a> for details.</p>
+<h3><a name="label:2" id="label:2">Structure</a></h3><!-- RDLabel: "Structure" -->
+<p>RubyNetCDF consists of the four classes in the following.</p>
+<ul>
+<li><p><a href="#label:10">class NetCDF</a> -- the file class</p>
+<p>An NetCDF object represents a NetCDF file</p></li>
+<li><p><a href="#label:43">class NetCDFDim</a> -- the dimension class</p>
+<p>Although in its C version a NetCDF dimension is represented by a
+combination of a file ID and a dimension ID, it is represented by
+only one NetCDFDim object in RubyNetCDF.</p></li>
+<li><p><a href="#label:51">class NetCDFVar</a> -- the variable class</p>
+<p>Although in its C version a NetCDF variable is represented by a
+combination of a file ID and a variable ID, it is represented by
+only one NetCDFVar object in RubyNetCDF.</p></li>
+<li><p><a href="#label:90">class NetCDFAtt</a> -- the attribute class</p>
+<p>Although in its C version a NetCDF attribute is represented by a
+combination of file ID, variable ID, and its name, it is represented
+by only one NetCDFAtt object in RubyNetCDF.</p></li>
+</ul>
+<h3><a name="label:3" id="label:3">Data type</a></h3><!-- RDLabel: "Data type" -->
+<p>All the NetCDF variable types char, byte, short, int, float, and
+double are supported in this Ruby interface. These types are called,
+however, differently in it to adhere to the convention of Ruby, or,
+more specifically, of NArray. These types are named to as "char",
+"byte", "sint", "int", "sfloat", and "float", respectively. Therefore,
+the vartype (=ntype) method of the NetCDFVar class returns one of these
+strings.  The def_var method of the NetCDF class also accepts one of
+them to define a variable.  It should be noted especially that "float"
+in this library means the double in the NetCDF terminology. This is
+due to the convention of Ruby -- the predefined Float class
+corresponds to the double in C, not the float.</p>
+<p>The "get" method of NetCDFVar class reads a variable in a NArray of
+the same type as in the file, except for the "char" type which is read
+into a "byte".  This is because NArray does not have a "char" type.
+However, it not is not supposed to be a problem, since a byte NArray
+can easily handle string data.</p>
+<h3><a name="label:4" id="label:4">Error handling</a></h3><!-- RDLabel: "Error handling" -->
+<p>Errors are basically handled by raising exceptions. However, light
+errors in value-returning methods are handled by returning nil (e.g.,
+if a non-existent attribute name is specified in attribute reading).
+Those methods that return nil on error are explicitly written as such 
+in the following.</p>
+<h3><a name="label:5" id="label:5">Security features</a></h3><!-- RDLabel: "Security features" -->
+<p>Security handling is done just as in the pre-defined File class.</p>
+<h3><a name="label:6" id="label:6">Usage</a></h3><!-- RDLabel: "Usage" -->
+<p>To use the RubyNetCDF library, load the library first by placing the
+following line in your Ruby program to load the library:</p>
+<pre>require 'numru/netcdf'</pre>
+<p>If you want to use automatic data-missing-handling methods
+(of NetCDFVar class), use the following:</p>
+<pre>require 'numru/netcdf_miss'</pre>
+<p>This will call <code>require 'numru/netcdf'</code> inside at the beginning, so 
+you do not have to call the both. The missing-data handling is done 
+with <a href="http://ruby.gfd-dennou.org/products/narray_miss/">NArrayMiss</a>,
+so you have have installed it. This is, however, not needed if you only
+call <code>require 'numru/netcdf'</code>.</p>
+<p>Here, 'numru', which stands for "Numerical Ruby", is the name of
+the subdirectory in the user's load path where the RubyNetCDF library
+is placed. Then, it can be used as in the following:</p>
+<pre>file = NumRu::NetCDF.create('tmp.nc')
+x = file.def_dim('x',10)
+y = file.def_dim('y',10)
+v = file.def_var('v','float',[x,y])
+file.close</pre>
+<p>Here, NumRu is the module that has the library in it. The
+reason why NetCDF library is wrapped in such a module is to avoid
+conflicts in the name space. Without this kind of treatment,
+problems happen if the user wants to use a library that happens to
+have a class or module with the same name as even one of the classes
+in this library.</p>
+<p>If such a problem is not expected to happen, the prefix "NumRu::" can
+be eliminated by "including" the NumRu module as in the following, so
+that to place "NumRu::" is not needed anymore in the current scope:</p>
+<pre>include NumRu
+file = NetCDF.create('tmp.nc')
+...</pre>
+<p>For more examples, see demo and test programs included in the
+distribution package.</p>
+<p>---------------------------------------------</p>
+<h2><a name="label:7" id="label:7">How to read this manual</a></h2><!-- RDLabel: "How to read this manual" -->
+<dl>
+<dt><h4><a name="label:8" id="label:8"><code>method_name(<var>argument1</var>, <var>argument2</var>, ...) -- <var>arguments</var> <var>that</var> <var>can</var> <var>be</var> <var>omitted</var> <var>are</var> <var>expressed</var> <var>as</var> <var>Argument_name</var>=<var>Default_value</var></code></a></h4></dt><!-- RDLabel: "method_name" -->
+<dd>
+<p>Explanation of its function</p>
+<p>Arguments</p>
+<ul>
+<li>name of argument1 (its class or possible values): explanation</li>
+<li>name of argument2 (its class or possible values): explanation</li>
+<li>...</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Explanation of the return value</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>Name(s) in NetCDF ver 3. The function equivalent to the current
+       method, if not in parenthesis. If no direct correspondence,
+       dependent functions are listed in parentheses.</li>
+</ul></dd>
+</dl>
+<p>---------------------------------------------</p>
+<h2><a name="label:9" id="label:9">Method Index</a></h2><!-- RDLabel: "Method Index" -->
+<ul>
+<li><p><a href="#label:10">class NetCDF</a></p>
+<p>Class Methods</p>
+<ul>
+<li><a href="#label:12">NetCDF.open</a>     Opens a file (class method). If mode="w" and non-existent, a new</li>
+<li><a href="#label:13">NetCDF.new</a>     Aliased to NetCDF.open</li>
+<li><a href="#label:14">NetCDF.create</a>     Creates a NetCDF file (class method)</li>
+<li><a href="#label:15">NetCDF.create_tmp</a>     Creates a temporary NetCDF file (class method)</li>
+</ul>
+<p>Instance Methods</p>
+<ul>
+<li><a href="#label:17">close</a>     Closes the file.</li>
+<li><a href="#label:18">ndims</a>     Returns the number of dimensions in the file</li>
+<li><a href="#label:19">nvars</a>     Returns the number of variables in the file</li>
+<li><a href="#label:20">natts</a>     Returns the number of global attributes in the file</li>
+<li><a href="#label:21">unlimited</a>     Returns the unlimited dimension in the file</li>
+<li><a href="#label:22">path</a>     Returns the path of the file (contents of the filename specified when opened/created)</li>
+<li><a href="#label:23">redef</a>     Switches to the define mode. Does nothing if already in it (nil returned).</li>
+<li><a href="#label:24">enddef</a>     Switches to the data mode. Does nothing if already in it (nil returned).</li>
+<li><a href="#label:25">define_mode?</a>     Inquire whether the file is in the define mode.</li>
+<li><a href="#label:26">sync</a>     Synchronizes the disk copy of a netCDF dataset with in-memory buffer</li>
+<li><a href="#label:27">def_dim</a>     Define a dimension</li>
+<li><a href="#label:28">put_att</a>     Sets a global attribute</li>
+<li><a href="#label:29">def_var</a>     Defines a variable</li>
+<li><a href="#label:30">def_var_with_dim</a>     Same as def_var but defines dimensions first if needed</li>
+<li><a href="#label:31">var</a>     Opens an existing variable in the file</li>
+<li><a href="#label:32">vars</a>    Opens existing variables in the file</li>
+<li><a href="#label:33">dim</a>     Opens an existing dimension in the file</li>
+<li><a href="#label:34">dims</a>     Opens existing dimensions in the file</li>
+<li><a href="#label:35">att</a>     Opens an existing global attribute in the file</li>
+<li><a href="#label:36">fill=</a>     Sets a fill mode. (Default behavior of NetCDF is FILL.)</li>
+<li><a href="#label:37">each_dim</a>     Iterator regarding the dimensions in the file.</li>
+<li><a href="#label:38">each_var</a>     Iterator regarding the variables in the file.</li>
+<li><a href="#label:39">each_att</a>     Iterator regarding the global attributes of the file.</li>
+<li><a href="#label:40">dim_names</a>     Returns the names of all dimensions in the file</li>
+<li><a href="#label:41">var_names</a>     Returns the names of all variables in the file</li>
+<li><a href="#label:42">att_names</a>     Returns the names of all the global attributes of the file</li>
+</ul></li>
+<li><p><a href="#label:43">class NetCDFDim</a></p>
+<p>Class Methods</p>
+<p>Instance Methods</p>
+<ul>
+<li><a href="#label:46">length</a>     Returns the length of the dimension</li>
+<li><a href="#label:47">length_ul0</a>     Same as length but returns 0 for the unlimited dimension</li>
+<li><a href="#label:48">name=</a>     Rename the dimension</li>
+<li><a href="#label:49">name</a>     Returns the name of the  dimension</li>
+<li><a href="#label:50">unlimited?</a>     Inquires whether the dimension is unlimited or not</li>
+</ul></li>
+<li><p><a href="#label:51">class NetCDFVar</a></p>
+<p>Class Methods</p>
+<ul>
+<li><a href="#label:53">NetCDFVar.new</a>     Combines NetCDF.open and NetCDF#Var to open a variable with one line (no need to use this).</li>
+<li><a href="#label:54">NetCDFVar.unpack_type=</a>    Fix the NArray type to be used
+      in <a href="#label:81">unpack</a></li>
+<li><a href="#label:55">NetCDFVar.unpack_type</a>     Returns the NArray type set by <a href="#label:54">NetCDFVar.unpack_type=</a>.</li>
+</ul>
+<p>Instance Methods</p>
+<ul>
+<li><a href="#label:33">dim</a>     Inquires the dim_num-th dimension of the variable (dim_num=0,1,2,..)</li>
+<li><a href="#label:34">dims</a>     Returns an array of all the dimensions of the variable</li>
+<li><a href="#label:59">shape_ul0</a>     Returns the shape of the variable, but the length of the unlimited dimension is set to zero.</li>
+<li><a href="#label:60">shape_current</a>     Returns the current shape of the variable.</li>
+<li><a href="#label:39">each_att</a>     Iterator regarding the global attributes of the variables.</li>
+<li><a href="#label:40">dim_names</a>     Returns the names of all the dimensions of the variable</li>
+<li><a href="#label:42">att_names</a>     Returns the names of all the attributes of the variable</li>
+<li><a href="#label:49">name</a>     Returns the name of the variable</li>
+<li><a href="#label:48">name=</a>     Rename the variable</li>
+<li><a href="#label:18">ndims</a>     Number of dimensions of the variable (which is rank of the variable).</li>
+<li><a href="#label:67">rank</a>     aliased to ndims</li>
+<li><a href="#label:68">ntype</a>      Aliased to vartype</li>
+<li><a href="#label:69">vartype</a>     Inquires the data value type of the variable</li>
+<li><a href="#label:70">typecode</a>     Inquires the data type of the variable (returns a typecode of NArray)</li>
+<li><a href="#label:20">natts</a>     Returns the number of the attributes of the variable</li>
+<li><a href="#label:72">file</a>     Inquires the file that the variable is in</li>
+<li><a href="#label:35">att</a>     Returns the attribute specified by its name</li>
+<li><a href="#label:28">put_att</a>     Sets an attribute</li>
+<li><a href="#label:75">put</a>     Aliased to <a href="#label:76">simple_put</a></li>
+<li><a href="#label:76">simple_put</a>     Set the values of the variable</li>
+<li><a href="#label:77">pack</a> Pack a NArray (etc) using the attributes scale_factor and/or add_offset of self.</li>
+<li><a href="#label:78">scaled_put</a>     Same as <a href="#label:76">simple_put</a> but interprets the attributes scale_factor and/or add_offset using <a href="#label:77">pack</a>.</li>
+<li><a href="#label:79">get</a>     Aliased to <a href="#label:80">simple_get</a></li>
+<li><a href="#label:80">simple_get</a>     Returns values of the variable</li>
+<li><a href="#label:81">unpack</a> Unpack a NArray (etc) using the attributes scale_factor and/or add_offset of self.</li>
+<li><a href="#label:82">scaled_get</a>     Same as <a href="#label:80">simple_get</a> but interprets the attributes scale_factor and/or add_offset using <a href="#label:81">unpack</a>.</li>
+<li><a href="#label:83">[]</a>     Same as NetCDFVar#get but a subset is specified as in the method [] of NArray. </li>
+<li><a href="#label:84">[]=</a>     Same as NetCDFVar#put but a subset is specified as in the method []= of NArray. </li>
+</ul>
+<p>Instance Methods added by requiring "numru/netcdf_miss"</p>
+<ul>
+<li><a href="#label:86">get_with_miss</a>     Same as <a href="#label:79">get</a> but interprets data missing.</li>
+<li><a href="#label:87">get_with_miss_and_scaling</a>     Same as <a href="#label:86">get_with_miss</a> but handles data scaling too.</li>
+<li><a href="#label:88">put_with_miss</a>     Same as <a href="#label:75">put</a> but interprets data missing.</li>
+<li><a href="#label:89">put_with_miss_and_scaling</a>     Same as <a href="#label:88">put_with_miss</a> but handles data scaling too.</li>
+</ul></li>
+<li><p><a href="#label:90">class NetCDFAtt</a></p>
+<p>Class Methods</p>
+<p>Instance Methods</p>
+<ul>
+<li><a href="#label:49">name</a>     Returns the name of the attribute</li>
+<li><a href="#label:48">name=</a>     Rename the attribute</li>
+<li><a href="#label:95">copy</a>     Copies an attribute to a variable or a file. If file, becomes an global attribute</li>
+<li><a href="#label:96">delete</a>     Delete an attribute</li>
+<li><a href="#label:75">put</a>     Sets the value of the attribute</li>
+<li><a href="#label:79">get</a>     Returns the values of the attribute</li>
+<li><a href="#label:99">atttype</a>     Inquires the type of attribute values</li>
+<li><a href="#label:70">typecode</a>    Inquires the type of attribute values (returns a NArray typecode)</li>
+</ul></li>
+</ul>
+<p>---------------------------------------------</p>
+<h1><a name="label:10" id="label:10">class NetCDF</a></h1><!-- RDLabel: "class NetCDF" -->
+<h3><a name="label:11" id="label:11">Class Methods</a></h3><!-- RDLabel: "Class Methods" -->
+<dl>
+<dt><h4><a name="label:12" id="label:12"><code>NetCDF.open(<var>filename</var>, <var>mode</var>="<var>r</var>", <var>share</var>=<var>false</var>)</code></a></h4></dt><!-- RDLabel: "NetCDF.open" -->
+<dd>
+<p>Opens a file (class method). If mode="w" and the file does not
+exist, a new file is created.</p>
+<p>Arguments</p>
+<ul>
+<li>filename (String): file name (path)</li>
+<li>mode (String) : IO mode "r" (read only); "w","w+" (write --
+       current contents are overwritten (eliminated!)); "r+","a","a+"
+       (append -- writable while current contents are preserved).
+       All the options permit reading, unlike the predefined File class.
+       Note that to "append" will require extra time and disk
+       space due to the limitations of the original NetCDF library,
+       which is used in this library.</li>
+<li>share (true or false) : Whether to use the "shared" mode or not 
+       (set true if a file being written may be read from other
+       processes. See nc_open in Ch.5 of users' guide of the C version)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>a NetCDF object</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF </p>
+<ul>
+<li>nc_open, nc_create</li>
+</ul></dd>
+<dt><h4><a name="label:13" id="label:13"><code>NetCDF.new</code></a></h4></dt><!-- RDLabel: "NetCDF.new" -->
+<dd>
+<p>Aliased to NetCDF.open</p></dd>
+<dt><h4><a name="label:14" id="label:14"><code>NetCDF.create(<var>filename</var>, <var>noclobber</var>=<var>false</var>, <var>share</var>=<var>false</var>)</code></a></h4></dt><!-- RDLabel: "NetCDF.create" -->
+<dd>
+<p>Creates a NetCDF file (class method)</p>
+<p>Arguments</p>
+<ul>
+<li>filename (String) : file name (path)</li>
+<li>noclobber (true or false) : overwrite or not if the file exists</li>
+<li>share (true or false) : Whether to use the shared mode or not
+       (set true if a file being written may be read from other
+       processes. See nc_open in Ch.5 of users' guide of the C version)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>a NetCDF object</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_create</li>
+</ul></dd>
+<dt><h4><a name="label:15" id="label:15"><code>NetCDF.create_tmp(<var>tmpdir</var>=<var>ENV</var>['<var>TMPDIR</var>']||<var>ENV</var>['<var>TMP</var>']||<var>ENV</var>['<var>TEMP</var>']||'.', <var>share</var>=<var>false</var>)</code></a></h4></dt><!-- RDLabel: "NetCDF.create_tmp" -->
+<dd>
+<p>Creates a temporary NetCDF file (class method).
+Its name is automatically generated, and it is deleted when closed.</p>
+<p>Arguments</p>
+<ul>
+<li>tmpdir (String) : directory to place the temporary file.
+       By default, "." or a directory specified by an environmental
+       variable (TMPDIR or TMP or TEMP) is used. In a secure mode,
+       theses environmental variable is NOT used, and the default
+       value is '.'.</li>
+<li>share (true or false) : Whether to use the shared mode or not</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>a NetCDF object</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_create</li>
+</ul></dd>
+</dl>
+<h3><a name="label:16" id="label:16">Instance Methods</a></h3><!-- RDLabel: "Instance Methods" -->
+<dl>
+<dt><h4><a name="label:17" id="label:17"><code>close</code></a></h4></dt><!-- RDLabel: "close" -->
+<dd>
+<p>Closes the file.</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_close</li>
+</ul></dd>
+<dt><h4><a name="label:18" id="label:18"><code>ndims</code></a></h4></dt><!-- RDLabel: "ndims" -->
+<dd>
+<p>Returns the number of dimensions in the file</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Integer</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_ndims</li>
+</ul></dd>
+<dt><h4><a name="label:19" id="label:19"><code>nvars</code></a></h4></dt><!-- RDLabel: "nvars" -->
+<dd>
+<p>Returns the number of variables in the file</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Integer</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_nvars</li>
+</ul></dd>
+<dt><h4><a name="label:20" id="label:20"><code>natts</code></a></h4></dt><!-- RDLabel: "natts" -->
+<dd>
+<p>Returns the number of global attributes in the file</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Integer</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_natts</li>
+</ul></dd>
+<dt><h4><a name="label:21" id="label:21"><code>unlimited</code></a></h4></dt><!-- RDLabel: "unlimited" -->
+<dd>
+<p>Returns the unlimited dimension in the file</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>a NetCDFDim if it exists; nil if not</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_unlimdim</li>
+</ul></dd>
+<dt><h4><a name="label:22" id="label:22"><code>path</code></a></h4></dt><!-- RDLabel: "path" -->
+<dd>
+<p>Returns the path of the file (contents of the filename specified when opened/created)</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>String</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(none)</li>
+</ul></dd>
+<dt><h4><a name="label:23" id="label:23"><code>redef</code></a></h4></dt><!-- RDLabel: "redef" -->
+<dd>
+<p>Switches to the define mode. Does nothing if already in it (nil returned).</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>true if successfully switched to the define mode;</li>
+</ul></dd>
+</dl>
+<pre>nil if the file is already in the define mode.
+Exception is raised if unsuccessful for other reasons.</pre>
+<pre>Corresponding (dependent) function(s) in the C library of NetCDF
+*  nc_redef</pre>
+<dl>
+<dt><h4><a name="label:24" id="label:24"><code>enddef</code></a></h4></dt><!-- RDLabel: "enddef" -->
+<dd>
+<p>Switches to the data mode. Does nothing if already in it (nil returned).</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>true if successfully switched to the data mode;</li>
+</ul></dd>
+</dl>
+<pre>nil if the file is already in the data mode.
+Exception is raised if unsuccessful for other reasons.</pre>
+<pre>Corresponding (dependent) function(s) in the C library of NetCDF
+*  nc_enddef</pre>
+<dl>
+<dt><h4><a name="label:25" id="label:25"><code>define_mode?</code></a></h4></dt><!-- RDLabel: "define_mode?" -->
+<dd>
+<p>Inquire whether the file is in the define mode.</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>true if the data is in the define mode;</li>
+</ul></dd>
+</dl>
+<pre>false if the file is in the data mode;
+nil otherwise (possibly the file is read-only).</pre>
+<pre>Corresponding (dependent) function(s) in the C library of NetCDF
+*  combination of nc_redef and nc_enddef</pre>
+<dl>
+<dt><h4><a name="label:26" id="label:26"><code>sync</code></a></h4></dt><!-- RDLabel: "sync" -->
+<dd>
+<p>Synchronizes the disk copy of a netCDF dataset with in-memory buffer</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_sync</li>
+</ul></dd>
+<dt><h4><a name="label:27" id="label:27"><code>def_dim(<var>dimension_name</var>, <var>length</var>)</code></a></h4></dt><!-- RDLabel: "def_dim" -->
+<dd>
+<p>Define a dimension</p>
+<p>Arguments</p>
+<ul>
+<li>dimension_name (String) : Name of the dimension to be defined</li>
+<li>length (Integer) : length of the dimension. 0 for unlimited.</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>defined dimension (NetCDFDim object)</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_def_dim</li>
+</ul></dd>
+<dt><h4><a name="label:28" id="label:28"><code>put_att(<var>attribute_name</var>, <var>value</var>, <var>atttype</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "put_att" -->
+<dd>
+<p>Sets a global attribute</p>
+<p>Arguments</p>
+<ul>
+<li>attribute_name (String) : name of the global attribute</li>
+<li>value (Numeric, String, Array of Numeric, or NArray) : value of the attribute</li>
+<li>atttype (nil or String) : data type of the attribute value.
+       nil lets it automatically determined from the value.
+       "char" (or "string"), "byte", "sint", "int", "sfloat", or "float"
+       specifies the type explicitly (1,1,2,4,4,8 bytes, respectively)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>created attribute (NetCDFAtt object)</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_put_att_&lt;type&gt;</li>
+</ul></dd>
+<dt><h4><a name="label:29" id="label:29"><code>def_var(<var>name</var>, <var>vartype</var>, <var>dimensions</var>)</code></a></h4></dt><!-- RDLabel: "def_var" -->
+<dd>
+<p>Defines a variable</p>
+<p>Arguments</p>
+<ul>
+<li>name (String) : Name of the variable to define</li>
+<li>vartype (String or Fixnum) : data type of the variable ("char", "byte", "sint",
+       "sint", "int", "sfloat", or "float"), or a NArray typecodes(Fixnum)</li>
+<li>dimensions (Array) : Dimensions of the variable. An Array of
+       NetCDFDim, in the order from the fastest varying dimension to
+       the slowest varying one; its length becomes the rank of the
+       variable.</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>defined variable (NetCDFVar object)</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_def_var</li>
+</ul></dd>
+<dt><h4><a name="label:30" id="label:30"><code>def_var_with_dim(<var>name</var>, <var>vartype</var>, <var>shape_ul0</var>, <var>dimnames</var>)</code></a></h4></dt><!-- RDLabel: "def_var_with_dim" -->
+<dd>
+<p>Same as def_var but defines dimensions first if needed.
+Raise exception if it conflicts with the lengths of existing dimensions.</p>
+<p>Arguments</p>
+<ul>
+<li>name (String) : Name of the variable to define</li>
+<li>vartype (String) : data type of the variable ("char", "byte", "sint",
+       "sint", "int", "sfloat", or "float")</li>
+<li>shape_ul0 (Array of Integer) : Shape of the variable, i.e.,
+       lengths of dimensions. The unlimited dimension is specified by zero.
+       The length of shape_ul0 determines the rank of the variable.</li>
+<li>dimnames (Array of String) : Names of the dimensions. Its length
+       (=&gt;rank) must be equal to that of shape_ul0</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>defined variable (NetCDFVar object)</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(nc_def_var)</li>
+</ul></dd>
+<dt><h4><a name="label:31" id="label:31"><code>var(<var>var_name</var>)</code></a></h4></dt><!-- RDLabel: "var" -->
+<dd>
+<p>Opens an existing variable in the file</p>
+<p>Arguments</p>
+<ul>
+<li>var_name (String) : Name of the variable to open</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>a NetCDFVar object; nil if the variable does not exist</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_varid</li>
+</ul></dd>
+<dt><h4><a name="label:32" id="label:32"><code>vars(<var>names</var>)</code></a></h4></dt><!-- RDLabel: "vars" -->
+<dd>
+<p>Opens existing variables in the file</p>
+<p>Arguments</p>
+<ul>
+<li>names (nil or Array of String): Names of the variables to open; 
+       all variables are returned if nil (default).</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Array of NetCDFVar objects; exception is raised if names has a 
+       non-existent name</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_varid</li>
+</ul></dd>
+<dt><h4><a name="label:33" id="label:33"><code>dim(<var>dimension_name</var>)</code></a></h4></dt><!-- RDLabel: "dim" -->
+<dd>
+<p>Opens an existing dimension in the file</p>
+<p>Arguments</p>
+<ul>
+<li>dimension_name (String) : Name of the dimension to open</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>a NetCDFDim object; nil if the dimension does not exist</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_dimid</li>
+</ul></dd>
+<dt><h4><a name="label:34" id="label:34"><code>dims(<var>names</var>)</code></a></h4></dt><!-- RDLabel: "dims" -->
+<dd>
+<p>Opens existing dimensions in the file</p>
+<p>Arguments</p>
+<ul>
+<li>names (nil or Array of String): Names of the dimensions to open; 
+       all dimensions are returned if nil (default).</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Array of NetCDFDim objects; exception is raised if names has a 
+       non-existent name</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_dimid</li>
+</ul></dd>
+<dt><h4><a name="label:35" id="label:35"><code>att(<var>attribute_name</var>)</code></a></h4></dt><!-- RDLabel: "att" -->
+<dd>
+<p>Opens an existing global attribute in the file</p>
+<p>Arguments</p>
+<ul>
+<li>attribute_name (String) : Name of the global attribute to open</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>a NetCDFAtt object if the attribute exists; nil if not</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(nc_inq_attid used for inquiry)</li>
+</ul></dd>
+<dt><h4><a name="label:36" id="label:36"><code>fill=(<var>filemode</var>)</code></a></h4></dt><!-- RDLabel: "fill=" -->
+<dd>
+<p>Sets a fill mode. (Default behavior of NetCDF is FILL.)</p>
+<p>Arguments</p>
+<ul>
+<li>fillmode (true or false)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_set_fill</li>
+</ul></dd>
+<dt><h4><a name="label:37" id="label:37"><code>each_dim{ ... }</code></a></h4></dt><!-- RDLabel: "each_dim" -->
+<dd>
+<p>Iterator regarding the dimensions in the file.
+Ex.: {|i| print i.name,"\n"} prints names of all dimensions</p>
+<p>Arguments</p>
+<ul>
+<li>{ ... } : Block for the iterator. A "do end" block is the alternative.</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>self</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(dependent on nc_inq_ndims)</li>
+</ul></dd>
+<dt><h4><a name="label:38" id="label:38"><code>each_var{ ... }</code></a></h4></dt><!-- RDLabel: "each_var" -->
+<dd>
+<p>Iterator regarding the variables in the file.
+Ex.: {|i| print i.name,"\n"} prints names of all variables</p>
+<p>Arguments</p>
+<ul>
+<li>{ ... } :  Block for the iterator. A "do end" block is the alternative.</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>self</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(dependent on nc_inq_nvars)</li>
+</ul></dd>
+<dt><h4><a name="label:39" id="label:39"><code>each_att{ ... }</code></a></h4></dt><!-- RDLabel: "each_att" -->
+<dd>
+<p>Iterator regarding the global attributes of the file.
+Ex.: {|i| print i.name,"\n"} prints names of all of them.</p>
+<p>Arguments</p>
+<ul>
+<li>{ ... } : Block for the iterator. A "do end" block is the alternative.</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>self</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(dependent on nc_inq_natts, nc_inq_attname)</li>
+</ul></dd>
+<dt><h4><a name="label:40" id="label:40"><code>dim_names</code></a></h4></dt><!-- RDLabel: "dim_names" -->
+<dd>
+<p>Returns the names of all dimensions in the file</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Array of NetCDFDim</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(nc_inq_ndims, nc_inq_dimname)</li>
+</ul></dd>
+<dt><h4><a name="label:41" id="label:41"><code>var_names</code></a></h4></dt><!-- RDLabel: "var_names" -->
+<dd>
+<p>Returns the names of all variables in the file</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Array of String</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(dependent on nc_inq_nvars, nc_inq_varname)</li>
+</ul></dd>
+<dt><h4><a name="label:42" id="label:42"><code>att_names</code></a></h4></dt><!-- RDLabel: "att_names" -->
+<dd>
+<p>Returns the names of all the global attributes of the file</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Array of NetCDFAtt</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(dependent on nc_inq_natts, nc_inq_attname)</li>
+</ul></dd>
+</dl>
+<p>---------------------------------------------</p>
+<h1><a name="label:43" id="label:43">class NetCDFDim</a></h1><!-- RDLabel: "class NetCDFDim" -->
+<h3><a name="label:44" id="label:44">Class Methods</a></h3><!-- RDLabel: "Class Methods" -->
+<h3><a name="label:45" id="label:45">Instance Methods</a></h3><!-- RDLabel: "Instance Methods" -->
+<dl>
+<dt><h4><a name="label:46" id="label:46"><code>length</code></a></h4></dt><!-- RDLabel: "length" -->
+<dd>
+<p>Returns the length of the dimension</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Integer</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_dimlen</li>
+</ul></dd>
+<dt><h4><a name="label:47" id="label:47"><code>length_ul0</code></a></h4></dt><!-- RDLabel: "length_ul0" -->
+<dd>
+<p>Same as length but returns 0 for the unlimited dimension</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Integer</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_dimlen</li>
+</ul></dd>
+<dt><h4><a name="label:48" id="label:48"><code>name=(<var>dimension_newname</var>)</code></a></h4></dt><!-- RDLabel: "name=" -->
+<dd>
+<p>Rename the dimension</p>
+<p>Arguments</p>
+<ul>
+<li>dimension_newname (String) : new name</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_rename_dim</li>
+</ul></dd>
+<dt><h4><a name="label:49" id="label:49"><code>name</code></a></h4></dt><!-- RDLabel: "name" -->
+<dd>
+<p>Returns the name of the  dimension</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>String</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_dimname</li>
+</ul></dd>
+<dt><h4><a name="label:50" id="label:50"><code>unlimited?</code></a></h4></dt><!-- RDLabel: "unlimited?" -->
+<dd>
+<p>Inquires whether the dimension is unlimited or not</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>true or false</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(dependent on nc_inq_unlimdim)</li>
+</ul></dd>
+</dl>
+<p>---------------------------------------------</p>
+<h1><a name="label:51" id="label:51">class NetCDFVar</a></h1><!-- RDLabel: "class NetCDFVar" -->
+<h3><a name="label:52" id="label:52">Class Methods</a></h3><!-- RDLabel: "Class Methods" -->
+<dl>
+<dt><h4><a name="label:53" id="label:53"><code>NetCDFVar.new(<var>file</var>,<var>varname</var>,<var>mode</var>="<var>r</var>",<var>share</var>=<var>false</var>)</code></a></h4></dt><!-- RDLabel: "NetCDFVar.new" -->
+<dd>
+<p>open a NetCDF variable. This can also be done with NetCDF#var
+(instance method of NetCDF class),  which is recommended over
+this method.</p>
+<p>Arguments</p>
+<ul>
+<li>file (NetCDF or String) : a NetCDF file object (NetCDF)
+       or the path of a NetCDF file (String).</li>
+<li>varname (String) : name of the variable in the file</li>
+<li>mode (String) : IO mode -- used if file is a String (see NetCDF.open)</li>
+<li>share (true or false) : Whether to use the "shared" mode or 
+       not  -- used if file is a String (see NetCDF.open)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>a NetCDFVar object</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF </p>
+<ul>
+<li>(dependent on nc_open, nc_create, nc_inq_varid etc.)</li>
+</ul></dd>
+<dt><h4><a name="label:54" id="label:54"><code>NetCDFVar.unpack_type=(<var>na_type</var>)</code></a></h4></dt><!-- RDLabel: "NetCDFVar.unpack_type=" -->
+<dd>
+<p>Fix the NArray type to be used in <a href="#label:81">unpack</a>.</p>
+<p>Arguments</p>
+<ul>
+<li>na_type (Integer) : NArray::BYTE, NArray::SINT, NArray::INT, 
+       NArray::SFLOAT, or NArray::FLOAT</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>na_type (the argument)</li>
+</ul></dd>
+<dt><h4><a name="label:55" id="label:55"><code>NetCDFVar.unpack_type</code></a></h4></dt><!-- RDLabel: "NetCDFVar.unpack_type" -->
+<dd>
+<p>Returns the NArray type set by <a href="#label:54">NetCDFVar.unpack_type=</a>.</p>
+<p>Return value</p>
+<ul>
+<li>nil, NArray::BYTE, NArray::SINT, NArray::INT, 
+       NArray::SFLOAT, or NArray::FLOAT</li>
+</ul></dd>
+</dl>
+<h3><a name="label:56" id="label:56">Instance Methods</a></h3><!-- RDLabel: "Instance Methods" -->
+<dl>
+<dt><h4><a name="label:57" id="label:57"><code>dim(<var>dim_num</var>)</code></a></h4></dt><!-- RDLabel: "dim" -->
+<dd>
+<p>Inquires the dim_num-th dimension of the variable (dim_num=0,1,2,..)</p>
+<p>Arguments</p>
+<ul>
+<li>dim_num (Fixnum) : 0,1,...  0 is the fastest varying dimension.</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>a NetCDFDim object</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(dependent on nc_inq_vardimid)</li>
+</ul></dd>
+<dt><h4><a name="label:58" id="label:58"><code>dims</code></a></h4></dt><!-- RDLabel: "dims" -->
+<dd>
+<p>Returns an array of all the dimensions of the variable</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Array of NetCDFDim objects.</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_vardimid</li>
+</ul></dd>
+<dt><h4><a name="label:59" id="label:59"><code>shape_ul0</code></a></h4></dt><!-- RDLabel: "shape_ul0" -->
+<dd>
+<p>Returns the shape of the variable, but the length of the unlimited dimension is set to zero.
+Good to define another variable.</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Array. [length of 0th dim, length of 1st dim,.. ]</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(dependent on nc_inq_vardimid, nc_inq_unlimdim etc)</li>
+</ul></dd>
+<dt><h4><a name="label:60" id="label:60"><code>shape_current</code></a></h4></dt><!-- RDLabel: "shape_current" -->
+<dd>
+<p>Returns the current shape of the variable.</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Array. [length of 0th dim, length of 1st dim,.. ]</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(dependent on nc_inq_vardimid etc)</li>
+</ul></dd>
+<dt><h4><a name="label:61" id="label:61"><code>each_att{ ... }</code></a></h4></dt><!-- RDLabel: "each_att" -->
+<dd>
+<p>Iterator regarding the global attributes of the variables.
+Ex.: {|i| print i.name,"\n"} prints names of all of them.</p>
+<p>Arguments</p>
+<ul>
+<li>{ ... }  : Block for the iterator. A "do end" block is the alternative.</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>self</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(dependent on nc_inq_natts, nc_inq_attname)</li>
+</ul></dd>
+<dt><h4><a name="label:62" id="label:62"><code>dim_names</code></a></h4></dt><!-- RDLabel: "dim_names" -->
+<dd>
+<p>Returns the names of all the dimensions of the variable</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Array of String</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(dependent on nc_inq_varndims, nc_inq_vardimid, nc_inq_dimname)</li>
+</ul></dd>
+<dt><h4><a name="label:63" id="label:63"><code>att_names</code></a></h4></dt><!-- RDLabel: "att_names" -->
+<dd>
+<p>Returns the names of all the attributes of the variable</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Array of String</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(dependent on nc_inq_natts, nc_inq_attname)</li>
+</ul></dd>
+<dt><h4><a name="label:64" id="label:64"><code>name</code></a></h4></dt><!-- RDLabel: "name" -->
+<dd>
+<p>Returns the name of the variable</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>String</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_varname</li>
+</ul></dd>
+<dt><h4><a name="label:65" id="label:65"><code>name=(<var>variable_newname</var>)</code></a></h4></dt><!-- RDLabel: "name=" -->
+<dd>
+<p>Rename the variable</p>
+<p>Arguments</p>
+<ul>
+<li>variable_newname (String) : new name</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_rename_var</li>
+</ul></dd>
+<dt><h4><a name="label:66" id="label:66"><code>ndims</code></a></h4></dt><!-- RDLabel: "ndims" -->
+<dd>
+<p>Number of dimensions of the variable (which is rank of the variable).</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Integer</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_varndims</li>
+</ul></dd>
+<dt><h4><a name="label:67" id="label:67"><code>rank</code></a></h4></dt><!-- RDLabel: "rank" -->
+<dd>
+<p>Aliased to ndims</p></dd>
+<dt><h4><a name="label:68" id="label:68"><code>ntype</code></a></h4></dt><!-- RDLabel: "ntype" -->
+<dd>
+<p>Aliased to vartype</p></dd>
+<dt><h4><a name="label:69" id="label:69"><code>vartype</code></a></h4></dt><!-- RDLabel: "vartype" -->
+<dd>
+<p>Inquires the data value type of the variable</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>String ("char","byte","sint","int","sfloat", or "float")</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_vartype</li>
+</ul></dd>
+<dt><h4><a name="label:70" id="label:70"><code>typecode</code></a></h4></dt><!-- RDLabel: "typecode" -->
+<dd>
+<p>Inquires the data type of the variable (returns a typecode of NArray)</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>a Fixnum (NArray:BYTE, NArray:SINT, NArray:LINT, NArray:SFLOAT, NArray:SFLOAT, NArray:DFLOAT)</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_vartype</li>
+</ul></dd>
+<dt><h4><a name="label:71" id="label:71"><code>natts</code></a></h4></dt><!-- RDLabel: "natts" -->
+<dd>
+<p>Returns the number of the attributes of the variable</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Integer</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_varnatts</li>
+</ul></dd>
+<dt><h4><a name="label:72" id="label:72"><code>file</code></a></h4></dt><!-- RDLabel: "file" -->
+<dd>
+<p>Inquires the file that the variable is in</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>a NetCDF object</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(none)</li>
+</ul></dd>
+<dt><h4><a name="label:73" id="label:73"><code>att(<var>attribute_name</var>)</code></a></h4></dt><!-- RDLabel: "att" -->
+<dd>
+<p>Returns the attribute specified by its name</p>
+<p>Arguments</p>
+<ul>
+<li>attribute_name (String) : Name of the attribute</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>a NetCDFAtt object if the attribute exists; nil if not</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(nc_inq_attid is used for inquiry)</li>
+</ul></dd>
+<dt><h4><a name="label:74" id="label:74"><code>put_att(<var>attribute_name</var>, <var>value</var>, <var>atttype</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "put_att" -->
+<dd>
+<p>Sets an attribute</p>
+<p>Arguments</p>
+<ul>
+<li>attribute_name (String) : name of the attribute</li>
+<li>value (Numeric, String, Array of Numeric, or NArray) : value of the attribute</li>
+<li>atttype (nil or String) : data type of the attribute value.
+       nil lets it automatically determined from the value.
+       "char" (="string"), "byte", "sint", "int", "sfloat", or "float"
+       specifies the type explicitly (1,1,2,4,4,8 bytes, respectively)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>a NetCDFAtt object</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_put_att_&lt;type&gt;</li>
+</ul></dd>
+<dt><h4><a name="label:75" id="label:75"><code>put(<var>value</var>, <var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "put" -->
+<dd>
+<p>Aliased to <a href="#label:76">simple_put</a></p></dd>
+<dt><h4><a name="label:76" id="label:76"><code>simple_put(<var>value</var>, <var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "simple_put" -->
+<dd>
+<p>Set the values of the variable</p>
+<p>Arguments</p>
+<ul>
+<li>value : value to set (Numeric, Array of Numeric (1D only), or 
+       NArray (possibly multi-D)). If it is a Numeric or length==1, the value
+       is set uniformly.</li>
+<li><p>option (Hash) : Optional argument to limit the portion of the
+       variable to output values. If omitted, the whole variable is
+       subject to the output. This argument accepts a Hash whose keys
+       contain either "index" or a combination of "start","end", and
+       "stride". The value of "index" points the index of a scalar
+       portion of the variable. The other case is used to designate a
+       regularly ordered subset, where "start" and "end" specifies
+       bounds in each dimension and "stride" specifies intervals in
+       it. As in Array "start", "end", and "index" can take negative
+       values to specify index backward from the end. However,
+       "stride" has to be positive, so reversing the array must be
+       done afterwards if you like.</p>
+<p>Example: If the variable is 2D:</p>
+<p>{"start"=&gt;[2,5],"end"=&gt;[6,-1],"stride"=&gt;[2,4]} -- Specifies a 
+subset made as follows: the 1st dimension from the element 2
+to the element 6 (note that the count starts with 0, so that
+the element 2 is the 3rd one) with an interval of 2; 
+the 2nd dimension from the element 6 to the last element
+(designated by -1) with an interval of 5.</p>
+<p>{"index"=&gt;[0,0]}: Scalar of the fist element</p>
+<p>{"index"=&gt;[0,-2]}: Scalar from the 1st element of with
+respect to the 1st dimension and the 2nd element from the last
+with respect to the 2nd dimension</p></li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_put_var_&lt;type&gt;, nc_put_vars_&lt;type&gt;, nc_put_var1_&lt;type&gt;</li>
+</ul></dd>
+<dt><h4><a name="label:77" id="label:77"><code>pack(<var>na</var>)</code></a></h4></dt><!-- RDLabel: "pack" -->
+<dd>
+<p>Pack a NArray (etc) using the attributes scale_factor and/or add_offset of self.</p>
+<p>If scale_factor and/or add_offset is defined, returns
+(na-add_offset)/scale_factor. Returns na if not.</p>
+<p>Arguments</p>
+<ul>
+<li>na : a numeric array to pack (NArray, NArrayMiss, or Array)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>a NArray or NArrayMiss</li>
+</ul></dd>
+<dt><h4><a name="label:78" id="label:78"><code>scaled_put(<var>value</var>, <var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "scaled_put" -->
+<dd>
+<p>Same as <a href="#label:76">simple_put</a> but interprets the attributes scale_factor and/or add_offset using <a href="#label:77">pack</a>.</p>
+<p>See the document for <a href="#label:76">simple_put</a> for arguments etc.</p></dd>
+<dt><h4><a name="label:79" id="label:79"><code>get(<var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "get" -->
+<dd>
+<p>Aliased to <a href="#label:80">simple_get</a>.</p></dd>
+<dt><h4><a name="label:80" id="label:80"><code>simple_get(<var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "simple_get" -->
+<dd>
+<p>Returns values of the variable</p>
+<p>Arguments</p>
+<ul>
+<li>option (Hash) : Optional argument to limit the portion of the
+       variable to get values. Its usage is the same as in the method
+       put.</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>an NArray object</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_get_var_&lt;type&gt;, nc_get_vars_&lt;type&gt;, nc_get_var1_&lt;type&gt;</li>
+</ul></dd>
+<dt><h4><a name="label:81" id="label:81"><code>unpack(<var>na</var>)</code></a></h4></dt><!-- RDLabel: "unpack" -->
+<dd>
+<p>Unpack a NArray (etc) using the attributes scale_factor and/or add_offset of self.</p>
+<p>If scale_factor and/or add_offset is defined, returns
+na * scale_factor + add_offset. Returns na if not.
+Type conversion is made by the coercing -- for example
+if na is sint and scale_factor and add_offset is sfloat,
+return value is sfloat. The type of the return value can be specified
+explicitly with <a href="#label:54">NetCDFVar.unpack_type=</a>.</p>
+<p>Arguments</p>
+<ul>
+<li>na : a numeric array to unpack (NArray, or NArrayMiss)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>a NArray or NArrayMiss</li>
+</ul></dd>
+<dt><h4><a name="label:82" id="label:82"><code>scaled_get(<var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "scaled_get" -->
+<dd>
+<p>Same as <a href="#label:80">simple_get</a> but interprets the attributes scale_factor and/or add_offset using <a href="#label:81">unpack</a>.</p>
+<p>See the document for <a href="#label:80">simple_get</a> for arguments etc.</p></dd>
+<dt><h4><a name="label:83" id="label:83"><code>[]</code></a></h4></dt><!-- RDLabel: "[]" -->
+<dd>
+<p>Same as NetCDFVar#get but a subset is specified as in the method [] of NArray. </p>
+<p>In addition to the subset specifications supported by NArray, 
+ranges with steps are supported, which is specified
+like {0..-1, 3}, i.e., a 1-element Hash with the key and value 
+representing the range (Range) and the step (Integer), respectively.
+Unlike NArray, 1-dimensional indexing of multi-dimensional
+variables is not support.</p></dd>
+<dt><h4><a name="label:84" id="label:84"><code>[] = </code></a></h4></dt><!-- RDLabel: "[]=" -->
+<dd>
+<p>Same as NetCDFVar#put but a subset is specified as in the method []= of NArray. </p>
+<p>In addition to the subset specifications supported by NArray, 
+ranges with steps are supported, which is specified
+like {0..-1, 3}, i.e., a 1-element Hash with the key and value 
+representing the range (Range) and the step (Integer), respectively.
+Unlike NArray, 1-dimensional indexing of multi-dimensional
+variables is not support.</p></dd>
+</dl>
+<h3><a name="label:85" id="label:85">Instance Methods added by requiring "numru/netcdf_miss"</a></h3><!-- RDLabel: "Instance Methods added by requiring "numru/netcdf_miss"" -->
+<dl>
+<dt><h4><a name="label:86" id="label:86"><code>get_with_miss(<var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "get_with_miss" -->
+<dd>
+<p>Same as <a href="#label:79">get</a> but interprets data missing.</p>
+<p>Data missing is specified by the standard attributes valid_range,
+(valid_min and/or valid_max), or missing_value, with the precedence being 
+this order. Unlike the
+recommendation in the NetCDF User's guide, missing_value is
+interpreted if present. If missing_value and valid_* present
+simultaneously, missing_value must be outside the valid range.
+Otherwise, exception is raised.</p>
+<p>If data missing is specified as stated above, this method returns a NArrayMiss.
+If not, it returns a NArray. Thus, you can use this whether
+data missing is defined or not.     </p>
+<p>Arguments</p>
+<ul>
+<li>See <a href="#label:79">get</a>.</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>an NArrayMiss (if data missing is specified) or an NArray
+       (if data missing is NOT specified)</li>
+</ul>
+<p>Possible exception in addition to NetcdfError.</p>
+<ul>
+<li>missing_value is in the valid range (see above).</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>See <a href="#label:79">get</a>. This method is written in Ruby.</li>
+</ul>
+<p>EXAMPLE</p>
+<ul>
+<li><p>The following is an example to replace <a href="#label:79">get</a> with <a href="#label:86">get_with_miss</a>.
+       It will also make <a href="#label:83">[]</a> interpret data missing, 
+       since it calls <code>get</code> internally.</p>
+<pre>file = NetCDF.open('hogehoge.nc')
+var = file.var('var')
+def var.get(*args); get_with_miss(*args); end
+p var.get       # --&gt; interprets data missing if defined
+p var[0..-1,0]  # --&gt; interprets data missing if defined (assumed 2D)</pre></li>
+</ul></dd>
+<dt><h4><a name="label:87" id="label:87"><code>get_with_miss_and_scaling(<var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "get_with_miss_and_scaling" -->
+<dd>
+<p>Same as <a href="#label:86">get_with_miss</a> but handles data scaling too using <a href="#label:81">unpack</a>.</p>
+<p>Missing data handling using valid_* / missing_value is applied 
+basically to packed data, which is consistent with most
+conventions. However, it is applied to unpacked data 
+if and only if the type of valid_* / missing_value is not the same as
+the packed data and is the samed as the unpacked data.
+This treatment can handle all conventions.</p>
+<p>EXAMPLE</p>
+<ul>
+<li>See above. The same thing applies.</li>
+</ul></dd>
+<dt><h4><a name="label:88" id="label:88"><code>put_with_miss(<var>value</var>, <var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "put_with_miss" -->
+<dd>
+<p>Same as <a href="#label:75">put</a> but interprets data missing.</p>
+<p>If <code>value</code> is an NArray, the methods behaves as <a href="#label:75">put</a>.
+Data missing in <code>value</code> is interpreted if it is an NArrayMiss
+and data missing is specified by attributes in <code>self</code> 
+(see <a href="#label:86">get_with_miss</a> ).
+Namely, the data which are "invalid" in the <code>value</code> is replaced
+with a missing value when written in the file.
+(missing_value or _FillValue or a value outside
+the valid range). No check is made whether "valid" values in the 
+NArrayMiss is within the valid range of <code>self</code>.</p>
+<p>Arguments</p>
+<ul>
+<li>value : NArrayMiss or what is allowed in <a href="#label:75">put</a>.</li>
+<li>option (Hash) : See <a href="#label:75">put</a>.</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>See <a href="#label:75">put</a>. This method is written in Ruby.</li>
+</ul>
+<p>EXAMPLE</p>
+<ul>
+<li><p>The following is an example to replace <a href="#label:75">put</a> with <a href="#label:88">put_with_miss</a>.
+       It will also make <a href="#label:84">[]=</a> interpret data missing, 
+       since it calls <code>put</code> internally.</p>
+<pre>file = NetCDF.open('hogehoge.nc')
+var = file.var('var')
+def var.put(*args); put_with_miss(*args); end
+var.put = narray_miss      # --&gt; interprets data missing if defined
+var[0..-1,0] = narray_miss # --&gt; interprets data missing if defined (assumed 2D)</pre></li>
+</ul></dd>
+<dt><h4><a name="label:89" id="label:89"><code>put_with_miss_and_scaling(<var>value</var>, <var>option</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "put_with_miss_and_scaling" -->
+<dd>
+<p>Same as <a href="#label:88">put_with_miss</a> but handles data scaling too using <a href="#label:77">pack</a>.</p>
+<p>Missing data handling using valid_* / missing_value is applied 
+basically to packed data, which is consistent with most
+conventions. However, it is applied to unpacked data 
+if and only if the type of valid_* / missing_value is not the same as
+the packed data and is the samed as the unpacked data.
+This treatment can handle all conventions.</p>
+<p>EXAMPLE</p>
+<ul>
+<li>See above. The same thing applies.</li>
+</ul></dd>
+</dl>
+<p>---------------------------------------------</p>
+<h1><a name="label:90" id="label:90">class NetCDFAtt</a></h1><!-- RDLabel: "class NetCDFAtt" -->
+<h3><a name="label:91" id="label:91">Class Methods</a></h3><!-- RDLabel: "Class Methods" -->
+<h3><a name="label:92" id="label:92">Instance Methods</a></h3><!-- RDLabel: "Instance Methods" -->
+<dl>
+<dt><h4><a name="label:93" id="label:93"><code>name</code></a></h4></dt><!-- RDLabel: "name" -->
+<dd>
+<p>Returns the name of the attribute</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>String</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>(none)</li>
+</ul></dd>
+<dt><h4><a name="label:94" id="label:94"><code>name=(<var>attribute_newname</var>)</code></a></h4></dt><!-- RDLabel: "name=" -->
+<dd>
+<p>Rename the attribute</p>
+<p>Arguments</p>
+<ul>
+<li>attribute_newname (String) : New name</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_rename_att</li>
+</ul></dd>
+<dt><h4><a name="label:95" id="label:95"><code>copy(<var>var_or_file</var>)</code></a></h4></dt><!-- RDLabel: "copy" -->
+<dd>
+<p>Copies an attribute to a variable or a file. If file, becomes an global attribute</p>
+<p>Arguments</p>
+<ul>
+<li>var_or_file (NetCDFVar or NetCDF)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>Resultant new attribute (NetCDFAtt)</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_copy_att</li>
+</ul></dd>
+<dt><h4><a name="label:96" id="label:96"><code>delete</code></a></h4></dt><!-- RDLabel: "delete" -->
+<dd>
+<p>Delete an attribute</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_del_att</li>
+</ul></dd>
+<dt><h4><a name="label:97" id="label:97"><code>put(<var>value</var>, <var>atttype</var>=<var>nil</var>)</code></a></h4></dt><!-- RDLabel: "put" -->
+<dd>
+<p>Sets the value of the attribute</p>
+<p>Arguments</p>
+<ul>
+<li>value (Numeric, String, Array of Numeric, or NArray) : value of the attribute</li>
+<li>atttype (nil or String) : data type of the attribute value.
+       nil lets it automatically determined from the value.
+       "char" (="string"), "byte", "sint", "int", "sfloat", or "float"
+       specifies the type explicitly (1,1,2,4,4,8 bytes, respectively)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>nil</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_put_att_&lt;type&gt;</li>
+</ul></dd>
+<dt><h4><a name="label:98" id="label:98"><code>get</code></a></h4></dt><!-- RDLabel: "get" -->
+<dd>
+<p>Returns the values of the attribute</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>String or an NArray object (NOTE: even a scalar is returned as
+        an NArray of length 1)</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_get_att_&lt;type&gt;</li>
+</ul></dd>
+<dt><h4><a name="label:99" id="label:99"><code>atttype</code></a></h4></dt><!-- RDLabel: "atttype" -->
+<dd>
+<p>Inquires the type of attribute values</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>"char","byte","sint","int","sfloat","float"</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_atttype</li>
+</ul></dd>
+<dt><h4><a name="label:100" id="label:100"><code>atttype</code></a></h4></dt><!-- RDLabel: "atttype" -->
+<dd>
+<p>Inquires the type of attribute values (returns a NArray typecode)</p>
+<p>Arguments</p>
+<ul>
+<li>(none)</li>
+</ul>
+<p>Return value</p>
+<ul>
+<li>a Fixnum (NArray:BYTE, NArray:SINT, NArray:LINT, NArray:SFLOAT, NArray:SFLOAT, NArray:DFLOAT)</li>
+</ul>
+<p>Corresponding (dependent) function(s) in the C library of NetCDF</p>
+<ul>
+<li>nc_inq_atttype</li>
+</ul></dd>
+</dl>
+
+</body>
+</html>

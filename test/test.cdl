@@ -1,0 +1,31 @@
+netcdf test {
+dimensions:
+	x = 15 ;
+	y = 10 ;
+	z = 10 ;
+variables:
+	short test_sint(x) ;
+	byte test_byte(y) ;
+	byte test_byte2(z, y) ;
+	int test_int(y) ;
+	float test_sfloat(z) ;
+	double test_float(y) ;
+	byte test_byte_vara(z, y) ;
+		test_byte_vara:min to max of byte_vara = 0b, 20b ;
+	short test_sint_vara(z, y) ;
+		test_sint_vara:string = "%%%%%" ;
+	int test_int_vara(z, y) ;
+		test_int_vara:min to max of int_vara = 0, 60 ;
+	float test_sfloat_vara(z, y) ;
+		test_sfloat_vara:min to max of float_vara = 0.01f, 5.5f ;
+	double test_float_vara(z, y) ;
+		test_float_vara:min_to max of double_vara = 0.0001, 5.5555 ;
+
+// global attributes:
+		:type_byte = 6b ;
+		:type_short = 222s, 333s, 444s ;
+		:type_int = 2222s, 3333s, 4444s ;
+		:type_float = 2.22f, 3.33f, 4.44f ;
+		:type_double = 2.222, 3.333, 4.444 ;
+		:string = "netCDF for Ruby" ;
+}
