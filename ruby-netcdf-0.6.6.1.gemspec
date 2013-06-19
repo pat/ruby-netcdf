@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.description = "RubyNetCDF is the Ruby interface to the NetCDF library built on the NArray library, which is an efficient multi-dimensional numeric array class for Ruby."
   s.email = ["eriko@gfd-dennou.org"]
   s.extensions = ["extconf.rb"]
-  s.files = `git ls-files`.split($/)
+  s.files = %w( ChangeLog INSTALL LICENSE.txt README.md Rakefile ToDo extconf.rb lib/netcdf.rb lib/netcdf_miss.rb netcdfraw.c )
   s.homepage = "http://www.gfd-dennou.org/arch/ruby/products/ruby-netcdf/"
   s.licenses = ["GFD Dennou Club"]
   s.require_paths = ["lib"]
