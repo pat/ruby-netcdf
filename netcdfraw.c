@@ -202,7 +202,7 @@
   ptr = (int32_t *) NA_PTR(na,0); \
 }
 
-#define NC_RAISE(status) rb_raise(err_status2class(status),(nc_strerror(status)))
+#define NC_RAISE(status) rb_raise(err_status2class(status),"%s", (nc_strerror(status)))
 #define NC_RAISE2(status, str) rb_raise(err_status2class(status),"%s (%s)",nc_strerror(status),(str) )
 
 static VALUE mNumRu = 0;
