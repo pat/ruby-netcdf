@@ -1,14 +1,14 @@
 # -*- encoding: utf-8 -*-
 
 Gem::Specification.new do |s|
-  s.name = "ruby-netcdf"
-  s.version = "0.6.6.1"
+  s.name = "ruby-netcdf-updated"
+  s.version = "0.7.0"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  s.authors = ["Takeshi Horinouchi", "Tsuyoshi Koshiro", "Shigenori Otsuka", "Seiya Nishizawa", "T Sakakima"]
+  s.authors = ["Takeshi Horinouchi", "Tsuyoshi Koshiro", "Shigenori Otsuka", "Seiya Nishizawa", "T Sakakima", "Edmund Highcock"]
   s.date = "2012-06-28"
-  s.description = "RubyNetCDF is the Ruby interface to the NetCDF library built on the NArray library, which is an efficient multi-dimensional numeric array class for Ruby."
-  s.email = ["eriko@gfd-dennou.org"]
+  s.description = "RubyNetCDF is the Ruby interface to the NetCDF library built on the NArray library, which is an efficient multi-dimensional numeric array class for Ruby. "
+  s.email = ["edmundhighcock@users.sourceforge.net"]
   s.extensions = ["extconf.rb"]
   s.files = %w( ChangeLog INSTALL LICENSE.txt README.md Rakefile ToDo extconf.rb lib/netcdf.rb lib/netcdf_miss.rb netcdfraw.c )
   s.homepage = "http://www.gfd-dennou.org/arch/ruby/products/ruby-netcdf/"
