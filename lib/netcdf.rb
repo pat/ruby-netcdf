@@ -1,11 +1,66 @@
 require 'narray'
 require 'numru/netcdfraw'
 
-# NetCDFクラスに関して
+if NArray.const_defined?(:SUPPORT_BIGMEM) && NArray::SUPPORT_BIGMEM
+  unless NumRu::NetCDF::SUPPORT_BIGMEM
+    raise "Ruby-NetCDF was compiled with NArray with big memory supoort " +
+          "(NArray-bigmem). However the NArray loaded is not NArray-bigmem."
+  end
+else
+  if NumRu::NetCDF::SUPPORT_BIGMEM
+    raise "Ruby-NetCDF was compiled with NArray without big memory support. " +
+          "However the NArray loaded is with the support (NArray-bigmem)."
+  end
+end
+
 module NumRu
   class NetCDF
 
     Max_Try = 100
+
+    NCVERSION = NetCDF.libvers
+
+    if NCVERSION[0..0] >= "4"
+      @@nc4 = true
+    else
+      @@nc4 = false
+    end
+    def NetCDF.nc4?
+      @@nc4
+    end
+
+    @@cr_format = 0
+
+    def NetCDF.creation_format=(cmode)
+      raise("This method is available only for NetCDF >= 4") unless @@nc4
+      case cmode
+      when  0, nil, NC_CLASSIC_MODEL, /^CLASSIC$/i  # classic netcdf ver 3 fmt
+        @@cr_format = 0
+      when NC_64BIT_OFFSET, /^64BIT_OFFSET$/i
+        @@cr_format = NC_64BIT_OFFSET
+      when NC_NETCDF4, /^NETCDF4$/i
+        @@cr_format = NC_NETCDF4
+      when ( NC_NETCDF4 | NC_CLASSIC_MODEL), /^NETCDF4_CLASSIC$/i
+        # NetCDF4 but disabling new data models
+        @@cr_format = NC_NETCDF4 | NC_CLASSIC_MODEL
+      else
+        raise ArgumentError, "Unsupported creation mode: #{cmod.to_s}"
+      end
+    end
+
+    def NetCDF.creation_format
+      raise("This method is available only for NetCDF >= 4") unless @@nc4
+      case @@cr_format
+      when 0
+        "TRADITIONAL"
+      when NC_64BIT_OFFSET
+        "64BIT_OFFSET"
+      when NC_NETCDF4
+        "NETCDF4"
+      when NC_NETCDF4 | NC_CLASSIC_MODEL
+        "NETCDF4_CLASSIC"
+      end
+    end
 
     def NetCDF.open(filename,mode="r",share=false)
        call_create=false   # false-> nc_open; true->nc_create
@@ -64,7 +119,7 @@ module NumRu
 	raise NetcdfError,"share (3rd argument) must be true or false"
       end
       
-      cmode=noclobber | share
+      cmode=noclobber | share | @@cr_format
       nc_create(filename,cmode)
     end
     
@@ -218,7 +273,6 @@ module NumRu
     
   end
   
-  #NetCDFVar class に関して
   class NetCDFVar
     
     class << NetCDFVar
@@ -522,77 +576,39 @@ module NumRu
        end
      elsif hash.key?("start")==true
        h_sta = hash["start"]
-       endq = hash.key?("end")
-       strq = hash.key?("stride")
-       if endq == false && strq == false
-	 if t_var == "char"
-	   get_vars_char(h_sta,nil,nil)
-	 elsif t_var == "byte"
-	   get_vars_byte(h_sta,nil,nil)
-	 elsif t_var == "sint" 
-	   get_vars_sint(h_sta,nil,nil)
-	 elsif t_var == "int"
-	   get_vars_int(h_sta,nil,nil)
-	 elsif t_var == "sfloat"
-	   get_vars_sfloat(h_sta,nil,nil)
-	 elsif t_var == "float"
-	   get_vars_float(h_sta,nil,nil)
-	 else 
-	   raise NetcdfError, "varialbe type #{t_var} isn't supported in netCDF"
-	 end
-       elsif endq == true && strq == false
-	 h_end = hash["end"]
- 	 if t_var == "char"
-	   get_vars_char(h_sta,h_end,nil)
- 	 elsif t_var == "byte"
-	   get_vars_byte(h_sta,h_end,nil)
-	 elsif t_var == "sint"
-	   get_vars_sint(h_sta,h_end,nil)
-	 elsif t_var == "int"
-	   get_vars_int(h_sta,h_end,nil)
-	 elsif t_var == "sfloat"
-	   get_vars_sfloat(h_sta,h_end,nil)
-	 elsif t_var == "float"
-	   get_vars_float(h_sta,h_end,nil)
-	 else
-	   raise NetcdfError, "variable type #{t_var} isn't supported in netCDF"
-	 end
-       elsif endq == false && strq == true
-	 h_str = hash["stride"]
- 	 if t_var == "char"
-	   get_vars_char(h_sta,nil,h_str)
- 	 elsif t_var == "byte"
-	   get_vars_byte(h_sta,nil,h_str)
-	 elsif t_var == "sint"
-	   get_vars_sint(h_sta,nil,h_str)
-	 elsif t_var == "int"
-	   get_vars_int(h_sta,nil,h_str)
-	 elsif t_var == "sfloat"
-	   get_vars_sfloat(h_sta,nil,h_str)
-	 elsif t_var == "float"
-	   get_vars_float(h_sta,nil,h_str)
-	 else
-	   raise NetcdfError, "variable type #{t_var} isn't supported in netCDF"
-	 end
-       else endq == true && strq == true
-	 h_end = hash["end"]
-	 h_str = hash["stride"]
-	 if t_var == "char"
-	   get_vars_char(h_sta,h_end,h_str)
-	 elsif t_var == "byte"
-	   get_vars_byte(h_sta,h_end,h_str)
-	 elsif t_var == "sint"
-	   get_vars_sint(h_sta,h_end,h_str)
-	 elsif t_var == "int"
-	   get_vars_int(h_sta,h_end,h_str)
-	 elsif t_var == "sfloat"
-	   get_vars_sfloat(h_sta,h_end,h_str)
-	 elsif t_var == "float"
-	   get_vars_float(h_sta,h_end,h_str)
-	 else
-	   raise NetcdfError, "variable type #{t_var} isn't supported in netCDF"
-	 end
+       h_end = hash["end"]     # can be nill
+       h_str = hash["stride"]  # can be nill
+       if NetCDF.nc4? && h_str && ((xstr=h_str[0]) != 1)
+         # Tentative treatment for the very slow netcdf-4 reading with step.
+         # Reading with step is generally slow with NetCDF 4, but it is
+         # particularly so for the first dimension.
+         # Ref: http://www.unidata.ucar.edu/mailing_lists/archives/netcdfgroup/2013/msg00311.html
+         h_str[0] = 1 
+         nc4remedy = true
+       else
+         nc4remedy = false
        end
+       if t_var == "char"
+         v = get_vars_char(h_sta,h_end,h_str)
+       elsif t_var == "byte"
+         v = get_vars_byte(h_sta,h_end,h_str)
+       elsif t_var == "sint"
+         v = get_vars_sint(h_sta,h_end,h_str)
+       elsif t_var == "int"
+         v = get_vars_int(h_sta,h_end,h_str)
+       elsif t_var == "sfloat"
+         v = get_vars_sfloat(h_sta,h_end,h_str)
+       elsif t_var == "float"
+         v = get_vars_float(h_sta,h_end,h_str)
+       else
+         raise NetcdfError, "variable type #{t_var} isn't supported in netCDF"
+       end
+       if nc4remedy
+         idx = []
+         (0...v.shape[0]).step(xstr){|k| idx.push(k)}
+         v = v[idx,false]
+       end
+       v
      else
        raise ArgumentError,"{'start'}=>{ARRAY} or {'index'}=>{ARRAY} is needed"
      end

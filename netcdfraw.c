@@ -24,6 +24,11 @@
 #define SafeStringValue(s) Check_SafeStr(s)
 #endif
 
+/* for compatibility for NArray and NArray with big memory patch */
+#ifndef NARRAY_BIGMEM
+typedef int    na_shape_t;
+#endif
+
 /* Data to NArray */
 
 /*    memcpy(ary->ptr,nc_ptr,na_sizeof[NA_SINT]*ary->total); \ */
@@ -202,7 +207,7 @@
   ptr = (int32_t *) NA_PTR(na,0); \
 }
 
-#define NC_RAISE(status) rb_raise(err_status2class(status),"%s", (nc_strerror(status)))
+#define NC_RAISE(status) rb_raise(err_status2class(status),"%s",(nc_strerror(status)))
 #define NC_RAISE2(status, str) rb_raise(err_status2class(status),"%s (%s)",nc_strerror(status),(str) )
 
 static VALUE mNumRu = 0;
@@ -343,9 +348,8 @@ NetCDF_dim_free(struct NetCDFDim *Netcdf_dim)
 void
 NetCDF_free(struct Netcdf *Netcdffile)
 {
-  int status;
   if (!Netcdffile->closed){
-      status = nc_close(Netcdffile->ncid); /* no error check -- not to stop during GC */
+      nc_close(Netcdffile->ncid); /* no error check -- not to stop during GC */
   }
   free(Netcdffile->name); 
   free(Netcdffile);
@@ -426,6 +430,7 @@ err_status2class(int status)
     case(NC_FATAL):
       return(rb_eNetcdfFatal);break;
     }
+  return rb_eNetcdfError;
 }
 
 static const char*
@@ -556,6 +561,14 @@ NetCDF_var_clone(VALUE var)
 }
 
 VALUE
+NetCDF_inq_libvers(VALUE mod)
+{
+  VALUE str;
+  str = rb_str_new2(nc_inq_libvers());
+  return(str);
+}
+
+VALUE
 NetCDF_close(file)
      VALUE file;
 {
@@ -563,7 +576,7 @@ NetCDF_close(file)
   int ncid;
   struct Netcdf *Netcdffile;
 
-  if (rb_safe_level() >= 4 && !OBJ_TAINTED(file)) {
+  if (rb_safe_level() >= 3 && !OBJ_TAINTED(file)) {
       rb_raise(rb_eSecurityError, "Insecure: can't close");
   }
   Data_Get_Struct(file,struct Netcdf,Netcdffile);
@@ -590,7 +603,7 @@ NetCDF_def_dim(VALUE file,VALUE dim_name,VALUE length)
   struct NetCDFDim *Netcdf_dim;
   VALUE Dimension;
   
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(file,struct Netcdf,Netcdffile);
   
   Check_Type(dim_name,T_STRING);
@@ -733,7 +746,7 @@ NetCDF_put_att(VALUE file,VALUE att_name,VALUE value,VALUE atttype)
     struct Netcdf *ncfile;
     char *name;
 
-    rb_secure(4);
+    rb_secure(3);
     Data_Get_Struct(file,struct Netcdf,ncfile);
     Check_Type(att_name,T_STRING);
     name = RSTRING_PTR(att_name);
@@ -751,7 +764,7 @@ NetCDF_put_att_var(VALUE var,VALUE att_name,VALUE value,VALUE atttype)
     struct NetCDFVar *ncvar;
     char *name;
 
-    rb_secure(4);
+    rb_secure(3);
     Data_Get_Struct(var,struct NetCDFVar,ncvar);
     Check_Type(att_name,T_STRING);
     name = RSTRING_PTR(att_name);
@@ -778,7 +791,7 @@ NetCDF_def_var(VALUE file,VALUE var_name,VALUE vartype,VALUE dimensions)
   struct NetCDFDim *Netcdf_dim;
   VALUE Var;
 
-  rb_secure(4);
+  rb_secure(3);
   Check_Type(var_name,T_STRING);
   Check_Type(dimensions,T_ARRAY);
 
@@ -823,7 +836,6 @@ NetCDF_def_var(VALUE file,VALUE var_name,VALUE vartype,VALUE dimensions)
   Var=Data_Wrap_Struct(cNetCDFVar,nc_mark_obj,NetCDF_var_free,Netcdf_var);
   return Var;
 }
-
 
 VALUE
 NetCDF_dim(VALUE file,VALUE dim_name)
@@ -949,7 +961,7 @@ NetCDF_redef(VALUE file)
   int status;
   struct Netcdf *Netcdffile;
 
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(file,struct Netcdf,Netcdffile);
   ncid=Netcdffile->ncid;
   status = nc_redef(ncid);
@@ -971,7 +983,7 @@ NetCDF_enddef(VALUE file)
   int status;
   struct Netcdf *Netcdffile;
 
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(file,struct Netcdf,Netcdffile);
   ncid=Netcdffile->ncid;
   status = nc_enddef(ncid);
@@ -998,7 +1010,7 @@ NetCDF_whether_in_define_mode(VALUE file)
   int status;
   struct Netcdf *Netcdffile;
 
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(file,struct Netcdf,Netcdffile);
   ncid=Netcdffile->ncid;
   status = nc_redef(ncid);
@@ -1149,7 +1161,7 @@ NetCDF_sync(VALUE file)
   int status;
   struct Netcdf *ncfile;
 
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(file,struct Netcdf,ncfile);
   ncid=ncfile->ncid;
   status = nc_sync(ncid);
@@ -1196,7 +1208,7 @@ NetCDF_dim_name(VALUE Dim,VALUE dimension_newname)
   char *c_dim_name;
   struct NetCDFDim *Netcdf_dim;
   
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Dim,struct NetCDFDim,Netcdf_dim);
   ncid=Netcdf_dim->ncid;
   dimid=Netcdf_dim->dimid;
@@ -1354,6 +1366,113 @@ NetCDF_id2att(VALUE file,VALUE attnum)
 
 }
 
+#if NCVER >= 400
+/* USAGE
+    NetCDFVar#deflate(deflate_level, shuffle=false)
+ */
+VALUE
+NetCDF_var_deflate(int argc, VALUE *argv, VALUE Var)
+{
+  int ncid, varid, status;
+  struct NetCDFVar *Netcdf_var;
+
+  int shuffle;
+    /* If non-zero, turn on the shuffle filter. 
+
+       http://www.unidata.ucar.edu/software/netcdf/papers/AMS_2008.pdf :
+       The shuffle algorithm changes the byte order in the data stream;
+       when used with integers that are all close together, this
+       results in a better compression ratio. There is no benefit
+       from using the shuffle filter without also using
+       compression.
+
+       MEMO by horinouchi: shuffling filter was also effective for float
+       variables in some test (demo5-netcdf4.rb).
+     */
+  int deflate_level;
+  int deflate=1;
+        /* Always set to non-zero:
+           See https://www.unidata.ucar.edu/software/netcdf/docs/netcdf-c/nc_005fdef_005fvar_005fdeflate.html#nc_005fdef_005fvar_005fdeflate
+           If non-zero, turn on the deflate filter at the
+           level specified by the deflate_level parameter.
+         */
+
+  if (argc>2 || argc<1) rb_raise(rb_eArgError, 
+		         "wrong # of arguments (%d). It must be 1 or 2", argc);
+
+  Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
+  ncid = Netcdf_var->ncid;
+  varid = Netcdf_var->varid;
+
+  deflate_level = NUM2INT(argv[0]);
+
+  if (argc==1) {
+      shuffle = 0;  /* default: false */
+  } else {
+      if ( argv[1] == Qnil || argv[1] == Qfalse ) {
+	  shuffle = 0;
+      } else {
+	  shuffle = 1;
+      }
+  }
+
+  status = nc_def_var_deflate(ncid, varid, shuffle, deflate, deflate_level);
+  if(status != NC_NOERR) NC_RAISE(status);
+
+  return(Var);
+}
+
+VALUE
+NetCDF_var_deflate_params(VALUE Var)
+{
+  int ncid, varid, status;
+  struct NetCDFVar *Netcdf_var;
+  int shufflep, deflatep, deflate_levelp;
+  VALUE sh, df, params;
+
+  Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
+  ncid = Netcdf_var->ncid;
+  varid = Netcdf_var->varid;
+  status = nc_inq_var_deflate(ncid, varid, &shufflep, &deflatep, 
+			      &deflate_levelp);
+  if(status != NC_NOERR) NC_RAISE(status);
+  if (shufflep==0) {sh=Qfalse;} else {sh=Qtrue;}
+  if (deflatep==0) {df=Qfalse;} else {df=Qtrue;}
+  params = rb_ary_new3(3, sh, df, INT2NUM(deflate_levelp) );
+  return(params);
+}
+
+VALUE
+NetCDF_var_set_endian(VALUE Var, VALUE endian)
+{
+  int ncid, varid, status;
+  struct NetCDFVar *Netcdf_var;
+
+  Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
+  ncid = Netcdf_var->ncid;
+  varid = Netcdf_var->varid;
+  status = nc_def_var_endian(ncid, varid, NUM2INT(endian));
+  if(status != NC_NOERR) NC_RAISE(status);
+  return(Var);
+}
+
+VALUE
+NetCDF_var_endian(VALUE Var)
+{
+  int ncid, varid, status;
+  struct NetCDFVar *Netcdf_var;
+  int endian;
+
+  Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
+  ncid = Netcdf_var->ncid;
+  varid = Netcdf_var->varid;
+  status = nc_inq_var_endian(ncid, varid, &endian);
+  if(status != NC_NOERR) NC_RAISE(status);
+  return(INT2FIX(endian));
+}
+
+#endif
+
 VALUE
 NetCDF_var_id2att(VALUE Var,VALUE attnum)
 {
@@ -1446,7 +1565,7 @@ NetCDF_att_copy(VALUE Att,VALUE Var_or_File)
   struct Netcdf    *ncfile;
   struct NetCDFAtt *Netcdf_att_out;
 
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Att,struct NetCDFAtt,Netcdf_att);
   ncid_in=Netcdf_att->ncid;
   varid_in=Netcdf_att->varid;
@@ -1523,7 +1642,7 @@ NetCDF_att_delete(VALUE Att)
   char *c_att_name;
   struct NetCDFAtt *Netcdf_att;
 
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Att,struct NetCDFAtt,Netcdf_att);
 
   ncid=Netcdf_att->ncid;
@@ -1545,7 +1664,7 @@ NetCDF_att_put(VALUE Att,VALUE value,VALUE atttype)
 {
   struct NetCDFAtt *ncatt;
  
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Att,struct NetCDFAtt,ncatt);
   return( NetCDF_put_att__(ncatt->ncid, ncatt->name, value, 
 			   atttype, ncatt->varid) );
@@ -1561,7 +1680,7 @@ NetCDF_att_get(VALUE Att)
   struct NetCDFAtt *Netcdf_att;
   nc_type xtypep;
   size_t lenp;
-  int attlen[1];    /* NArray uses int instead of size_t */
+  na_shape_t attlen[1];    /* NArray uses int instead of size_t */
   char *tp;
   unsigned char *up;
   short *sp;
@@ -1788,7 +1907,7 @@ NetCDF_var_rename(VALUE Var,VALUE var_new_name)
   char *c_var_new_name;
   struct NetCDFVar *Netcdf_var;
   
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -1937,7 +2056,7 @@ NetCDF_get_var_char(VALUE Var)
   int ndimsp;
   int *dimids;
   size_t lengthp;
-  int *shape;    /* NArray uses int instead of size_t */
+  na_shape_t *shape;    /* NArray uses int instead of size_t */
   VALUE NArray;
 
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
@@ -1947,7 +2066,7 @@ NetCDF_get_var_char(VALUE Var)
   if(status != NC_NOERR) NC_RAISE(status);
   dimids = ALLOCA_N(int,ndimsp);
   if (ndimsp != 0){
-      shape = ALLOCA_N(int,ndimsp);
+      shape = ALLOCA_N(na_shape_t,ndimsp);
       for(i=0;i<ndimsp;i++){
 	  status = nc_inq_vardimid(ncid,varid,dimids);
 	  if(status != NC_NOERR) NC_RAISE(status);
@@ -1956,7 +2075,7 @@ NetCDF_get_var_char(VALUE Var)
       }
   } else {
       ndimsp = 1;
-      shape = ALLOCA_N(int,1);
+      shape = ALLOCA_N(na_shape_t,1);
       shape[0]=1;
   }
 
@@ -1981,7 +2100,7 @@ NetCDF_get_var_byte(VALUE Var)
   int ndimsp;
   int *dimids;
   size_t lengthp;
-  int *shape;    /* NArray uses int instead of size_t */
+  na_shape_t *shape;    /* NArray uses int instead of size_t */
   VALUE NArray;
 
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
@@ -1991,7 +2110,7 @@ NetCDF_get_var_byte(VALUE Var)
   if(status != NC_NOERR) NC_RAISE(status);
   dimids = ALLOCA_N(int,ndimsp);
   if (ndimsp != 0){
-      shape = ALLOCA_N(int,ndimsp);
+      shape = ALLOCA_N(na_shape_t,ndimsp);
       for(i=0;i<ndimsp;i++){
 	  status = nc_inq_vardimid(ncid,varid,dimids);
 	  if(status != NC_NOERR) NC_RAISE(status);
@@ -2000,7 +2119,7 @@ NetCDF_get_var_byte(VALUE Var)
       }
   } else {
       ndimsp = 1;
-      shape = ALLOCA_N(int,1);
+      shape = ALLOCA_N(na_shape_t,1);
       shape[0]=1;
   }
 
@@ -2025,7 +2144,7 @@ NetCDF_get_var_sint(VALUE Var)
   int ndimsp;
   int *dimids;
   size_t lengthp;
-  int *shape;    /* NArray uses int instead of size_t */
+  na_shape_t *shape;    /* NArray uses int instead of size_t */
   VALUE NArray;
 
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
@@ -2035,7 +2154,7 @@ NetCDF_get_var_sint(VALUE Var)
   if(status != NC_NOERR) NC_RAISE(status);
   dimids = ALLOCA_N(int,ndimsp);
   if (ndimsp != 0){
-      shape = ALLOCA_N(int,ndimsp);
+      shape = ALLOCA_N(na_shape_t,ndimsp);
       for(i=0;i<ndimsp;i++){
 	  status = nc_inq_vardimid(ncid,varid,dimids);
 	  if(status != NC_NOERR) NC_RAISE(status);
@@ -2044,7 +2163,7 @@ NetCDF_get_var_sint(VALUE Var)
       }
   } else {
       ndimsp = 1;
-      shape = ALLOCA_N(int,1);
+      shape = ALLOCA_N(na_shape_t,1);
       shape[0]=1;
   }
 
@@ -2069,7 +2188,7 @@ NetCDF_get_var_int(VALUE Var)
   int ndimsp;
   int *dimids;
   size_t lengthp;
-  int *shape;    /* NArray uses int instead of size_t */
+  na_shape_t *shape;    /* NArray uses int instead of size_t */
   VALUE NArray;
 
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
@@ -2079,7 +2198,7 @@ NetCDF_get_var_int(VALUE Var)
   if(status != NC_NOERR) NC_RAISE(status);
   dimids = ALLOCA_N(int,ndimsp);
   if (ndimsp != 0){
-      shape = ALLOCA_N(int,ndimsp);
+      shape = ALLOCA_N(na_shape_t,ndimsp);
       for(i=0;i<ndimsp;i++){
 	  status = nc_inq_vardimid(ncid,varid,dimids);
 	  if(status != NC_NOERR) NC_RAISE(status);
@@ -2088,7 +2207,7 @@ NetCDF_get_var_int(VALUE Var)
       }
   } else {
       ndimsp = 1;
-      shape = ALLOCA_N(int,1);
+      shape = ALLOCA_N(na_shape_t,1);
       shape[0]=1;
   }
 
@@ -2113,7 +2232,7 @@ NetCDF_get_var_float(VALUE Var)
   int ndimsp;
   int *dimids;
   size_t lengthp;
-  int *shape;    /* NArray uses int instead of size_t */
+  na_shape_t *shape;    /* NArray uses int instead of size_t */
   VALUE NArray;
 
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
@@ -2123,7 +2242,7 @@ NetCDF_get_var_float(VALUE Var)
   if(status != NC_NOERR) NC_RAISE(status);
   dimids = ALLOCA_N(int,ndimsp);
   if (ndimsp != 0){
-      shape = ALLOCA_N(int,ndimsp);
+      shape = ALLOCA_N(na_shape_t,ndimsp);
       for(i=0;i<ndimsp;i++){
 	  status = nc_inq_vardimid(ncid,varid,dimids);
 	  if(status != NC_NOERR) NC_RAISE(status);
@@ -2132,7 +2251,7 @@ NetCDF_get_var_float(VALUE Var)
       }
   } else {
       ndimsp = 1;
-      shape = ALLOCA_N(int,1);
+      shape = ALLOCA_N(na_shape_t,1);
       shape[0]=1;
   }
 
@@ -2157,7 +2276,7 @@ NetCDF_get_var_double(VALUE Var)
   int ndimsp;
   int *dimids;
   size_t lengthp;
-  int *shape;    /* NArray uses int instead of size_t */
+  na_shape_t *shape;    /* NArray uses int instead of size_t */
   VALUE NArray;
 
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
@@ -2167,7 +2286,7 @@ NetCDF_get_var_double(VALUE Var)
   if(status != NC_NOERR) NC_RAISE(status);
   dimids = ALLOCA_N(int,ndimsp);
   if (ndimsp != 0){
-      shape = ALLOCA_N(int,ndimsp);
+      shape = ALLOCA_N(na_shape_t,ndimsp);
       for(i=0;i<ndimsp;i++){
 	  status = nc_inq_vardimid(ncid,varid,dimids);
 	  if(status != NC_NOERR) NC_RAISE(status);
@@ -2176,7 +2295,7 @@ NetCDF_get_var_double(VALUE Var)
       }
   } else {
       ndimsp = 1;
-      shape = ALLOCA_N(int,1);
+      shape = ALLOCA_N(na_shape_t,1);
       shape[0]=1;
   }
 
@@ -2198,13 +2317,12 @@ NetCDF_get_var1_char(VALUE Var,VALUE start)
   unsigned char *ptr;
   int i;
   struct NetCDFVar *Netcdf_var;
-  long l_start;
+  na_shape_t l_start;
   size_t *c_start;
   int ndims;
   int dimids[NC_MAX_DIMS];
   size_t dimlen;
-  int *c_count;
-  int nc_tlen=0;
+  na_shape_t *c_count;
   VALUE NArray;
 
   
@@ -2223,7 +2341,7 @@ NetCDF_get_var1_char(VALUE Var,VALUE start)
   }
   
   c_start=ALLOCA_N(size_t,ndims);
-  c_count=ALLOCA_N(int,ndims);
+  c_count=ALLOCA_N(na_shape_t,ndims);
   for(i=0;i<ndims;i++){
     l_start = NUM2INT(RARRAY_PTR(start)[ndims-1-i]);
     status = nc_inq_vardimid(ncid,varid,dimids);
@@ -2236,7 +2354,6 @@ NetCDF_get_var1_char(VALUE Var,VALUE start)
     c_start[i]=l_start;
     
     c_count[i]=1;
-    nc_tlen = 1+nc_tlen;
   }
   
   
@@ -2260,13 +2377,12 @@ NetCDF_get_var1_byte(VALUE Var,VALUE start)
   unsigned char *ptr;
   int i;
   struct NetCDFVar *Netcdf_var;
-  long l_start;
+  na_shape_t l_start;
   size_t *c_start;
   int ndims;
   int dimids[NC_MAX_DIMS];
   size_t dimlen;
-  int *c_count;
-  int nc_tlen=0;
+  na_shape_t *c_count;
   VALUE NArray;
 
   
@@ -2285,7 +2401,7 @@ NetCDF_get_var1_byte(VALUE Var,VALUE start)
   }
   
   c_start=ALLOCA_N(size_t,ndims);
-  c_count=ALLOCA_N(int,ndims);
+  c_count=ALLOCA_N(na_shape_t,ndims);
   for(i=0;i<ndims;i++){
     l_start = NUM2INT(RARRAY_PTR(start)[ndims-1-i]);
     status = nc_inq_vardimid(ncid,varid,dimids);
@@ -2298,7 +2414,6 @@ NetCDF_get_var1_byte(VALUE Var,VALUE start)
     c_start[i]=l_start;
     
     c_count[i]=1;
-    nc_tlen = 1+nc_tlen;
   }
   
   
@@ -2322,13 +2437,12 @@ NetCDF_get_var1_sint(VALUE Var,VALUE start)
   short *ptr;
   int i;
   struct NetCDFVar *Netcdf_var;
-  long l_start;
+  na_shape_t l_start;
   size_t *c_start;
   int ndims;
   int dimids[NC_MAX_DIMS];
   size_t dimlen;
-  int *c_count;
-  int nc_tlen=0;
+  na_shape_t *c_count;
   VALUE NArray;
 
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
@@ -2346,7 +2460,7 @@ NetCDF_get_var1_sint(VALUE Var,VALUE start)
   }
   
   c_start=ALLOCA_N(size_t,ndims);
-  c_count=ALLOCA_N(int,ndims);
+  c_count=ALLOCA_N(na_shape_t,ndims);
   for(i=0;i<ndims;i++){
     l_start = NUM2INT(RARRAY_PTR(start)[ndims-1-i]);
     status = nc_inq_vardimid(ncid,varid,dimids);
@@ -2358,7 +2472,6 @@ NetCDF_get_var1_sint(VALUE Var,VALUE start)
     }
     c_start[i]=l_start;
     c_count[i]=1;
-    nc_tlen = nc_tlen+1;
   }
   
   Csint_to_NArray(NArray,ndims,c_count,ptr);
@@ -2380,13 +2493,12 @@ NetCDF_get_var1_int(VALUE Var,VALUE start)
   int *ptr;
   int i;
   struct NetCDFVar *Netcdf_var;
-  long l_start;
+  na_shape_t l_start;
   size_t *c_start;
   int ndims;
   int dimids[NC_MAX_DIMS];
   size_t dimlen;
-  int *c_count;
-  int nc_tlen=0;
+  na_shape_t *c_count;
   VALUE NArray;
 
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
@@ -2404,7 +2516,7 @@ NetCDF_get_var1_int(VALUE Var,VALUE start)
   }
   
   c_start=ALLOCA_N(size_t,ndims);
-  c_count=ALLOCA_N(int,ndims);
+  c_count=ALLOCA_N(na_shape_t,ndims);
   for(i=0;i<ndims;i++){
     l_start = NUM2INT(RARRAY_PTR(start)[ndims-1-i]);
     status = nc_inq_vardimid(ncid,varid,dimids);
@@ -2416,7 +2528,6 @@ NetCDF_get_var1_int(VALUE Var,VALUE start)
     }
     c_start[i]=l_start;
     c_count[i]=1;
-    nc_tlen= nc_tlen+1;
   }
   
   Clint_to_NArray(NArray,ndims,c_count,ptr);
@@ -2438,13 +2549,12 @@ NetCDF_get_var1_float(VALUE Var,VALUE start)
   float *ptr;
   int i;
   struct NetCDFVar *Netcdf_var;
-  long l_start;
+  na_shape_t l_start;
   size_t *c_start;
   int ndims;
   int dimids[NC_MAX_DIMS];
   size_t dimlen;
-  int *c_count;
-  int nc_tlen=0;
+  na_shape_t *c_count;
   VALUE NArray;
 
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
@@ -2462,7 +2572,7 @@ NetCDF_get_var1_float(VALUE Var,VALUE start)
   }
   
   c_start=ALLOCA_N(size_t,ndims);
-  c_count=ALLOCA_N(int,ndims);
+  c_count=ALLOCA_N(na_shape_t,ndims);
   for(i=0;i<ndims;i++){
     l_start = NUM2INT(RARRAY_PTR(start)[ndims-1-i]);
     status = nc_inq_vardimid(ncid, varid, dimids);
@@ -2474,7 +2584,6 @@ NetCDF_get_var1_float(VALUE Var,VALUE start)
     }
     c_start[i]=l_start;
     c_count[i]=1;
-    nc_tlen = nc_tlen+1;
   }
   
   Cfloat_to_NArray(NArray,ndims,c_count,ptr);
@@ -2496,13 +2605,12 @@ NetCDF_get_var1_double(VALUE Var,VALUE start)
   double *ptr;
   int i;
   struct NetCDFVar *Netcdf_var;
-  long l_start;
+  na_shape_t l_start;
   size_t *c_start;
   int ndims;
   int dimids[NC_MAX_DIMS];
   size_t dimlen;
-  int *c_count;
-  int nc_tlen=0;
+  na_shape_t *c_count;
   VALUE NArray;
 
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
@@ -2520,7 +2628,7 @@ NetCDF_get_var1_double(VALUE Var,VALUE start)
   }
   
   c_start=ALLOCA_N(size_t,ndims);
-  c_count=ALLOCA_N(int,ndims);
+  c_count=ALLOCA_N(na_shape_t,ndims);
   for(i=0;i<ndims;i++){
     l_start = NUM2INT(RARRAY_PTR(start)[ndims-1-i]);
     status = nc_inq_vardimid(ncid,varid,dimids);
@@ -2532,7 +2640,6 @@ NetCDF_get_var1_double(VALUE Var,VALUE start)
     }
     c_start[i]=l_start;
     c_count[i]=1;
-    nc_tlen = nc_tlen+1;
   }
   
   Cdouble_to_NArray(NArray,ndims,c_count,ptr);
@@ -2554,14 +2661,13 @@ NetCDF_get_vars_char(VALUE Var,VALUE start,VALUE end,VALUE stride)
   unsigned char *ptr;
   int i;
   struct NetCDFVar *Netcdf_var;
-  long l_start, l_end;
+  na_shape_t l_start, l_end;
   size_t *c_start;
   size_t *c_count;
   ptrdiff_t *c_stride;
-  int *shape;    /* NArray uses int instead of size_t */
+  na_shape_t *shape;    /* NArray uses int instead of size_t */
   int ndims;
   int *dimids;
-  int nc_tlen=1;
   size_t dimlen;
   VALUE NArray;
 
@@ -2638,12 +2744,9 @@ NetCDF_get_vars_char(VALUE Var,VALUE start,VALUE end,VALUE stride)
       c_count[i]=(l_end-c_start[i])/c_stride[i]+1;
     }
   }
-  for(i=0;i<ndims;i++){
-    nc_tlen = nc_tlen*c_count[i];
-  }
 
   
-  shape = ALLOCA_N(int,ndims);
+  shape = ALLOCA_N(na_shape_t,ndims);
   for(i=0;i<ndims;i++){
     shape[ndims-1-i]=c_count[i];
   }
@@ -2666,14 +2769,13 @@ NetCDF_get_vars_byte(VALUE Var,VALUE start,VALUE end,VALUE stride)
   unsigned char *ptr;
   int i;
   struct NetCDFVar *Netcdf_var;
-  long l_start, l_end;
+  na_shape_t l_start, l_end;
   size_t *c_start;
   size_t *c_count;
   ptrdiff_t *c_stride;
-  int *shape;    /* NArray uses int instead of size_t */
+  na_shape_t *shape;    /* NArray uses int instead of size_t */
   int ndims;
   int *dimids;
-  int nc_tlen=1;
   size_t dimlen;
   VALUE NArray;
 
@@ -2750,12 +2852,9 @@ NetCDF_get_vars_byte(VALUE Var,VALUE start,VALUE end,VALUE stride)
       c_count[i]=(l_end-c_start[i])/c_stride[i]+1;
     }
   }
-  for(i=0;i<ndims;i++){
-    nc_tlen = nc_tlen*c_count[i];
-  }
 
   
-  shape = ALLOCA_N(int,ndims);
+  shape = ALLOCA_N(na_shape_t,ndims);
   for(i=0;i<ndims;i++){
     shape[ndims-1-i]=c_count[i];
   }
@@ -2778,14 +2877,13 @@ NetCDF_get_vars_sint(VALUE Var,VALUE start,VALUE end,VALUE stride)
   short *ptr;
   int i;
   struct NetCDFVar *Netcdf_var;
-  long l_start, l_end;
+  na_shape_t l_start, l_end;
   size_t *c_start;
   size_t *c_count;
   ptrdiff_t *c_stride;
-  int *shape;    /* NArray uses int instead of size_t */
+  na_shape_t *shape;    /* NArray uses int instead of size_t */
   int ndims;
   int *dimids;
-  int nc_tlen=1;
   size_t dimlen;
   VALUE NArray;
 
@@ -2863,11 +2961,8 @@ NetCDF_get_vars_sint(VALUE Var,VALUE start,VALUE end,VALUE stride)
     }
   }
   
-  for(i=0;i<ndims;i++){
-    nc_tlen = nc_tlen*c_count[i];
-  }
   
-  shape = ALLOCA_N(int,ndims);
+  shape = ALLOCA_N(na_shape_t,ndims);
   for(i=0;i<ndims;i++){
     shape[ndims-1-i]=c_count[i];
   }
@@ -2891,14 +2986,13 @@ NetCDF_get_vars_int(VALUE Var,VALUE start,VALUE end,VALUE stride)
   int *ptr;
   int i;
   struct NetCDFVar *Netcdf_var;
-  long l_start, l_end;
+  na_shape_t l_start, l_end;
   size_t *c_start;
   size_t *c_count;
   ptrdiff_t *c_stride;
-  int *shape;    /* NArray uses int instead of size_t */
+  na_shape_t *shape;    /* NArray uses int instead of size_t */
   int ndims;
   int *dimids;
-  int nc_tlen=1;
   size_t dimlen;
   VALUE NArray;
 
@@ -2976,11 +3070,8 @@ NetCDF_get_vars_int(VALUE Var,VALUE start,VALUE end,VALUE stride)
     }
   }
 
-  for(i=0;i<ndims;i++){
-    nc_tlen = nc_tlen*c_count[i];
-  }
   
-  shape = ALLOCA_N(int,ndims);
+  shape = ALLOCA_N(na_shape_t,ndims);
   for(i=0;i<ndims;i++){
     shape[ndims-1-i]=c_count[i];
   }
@@ -3004,14 +3095,13 @@ NetCDF_get_vars_float(VALUE Var,VALUE start,VALUE end,VALUE stride)
   float *ptr;
   int i;
   struct NetCDFVar *Netcdf_var;
-  long l_start, l_end;
+  na_shape_t l_start, l_end;
   size_t *c_start;
   size_t *c_count;
   ptrdiff_t *c_stride;
-  int *shape;    /* NArray uses int instead of size_t */
+  na_shape_t *shape;    /* NArray uses int instead of size_t */
   int ndims;
   int *dimids;
-  int nc_tlen=1;
   size_t dimlen;
   VALUE NArray;
 
@@ -3089,11 +3179,8 @@ NetCDF_get_vars_float(VALUE Var,VALUE start,VALUE end,VALUE stride)
     }
   }
   
-  for(i=0;i<ndims;i++){
-    nc_tlen = nc_tlen*c_count[i];
-  }
 
-  shape = ALLOCA_N(int,ndims);
+  shape = ALLOCA_N(na_shape_t,ndims);
   for(i=0;i<ndims;i++){
     shape[ndims-1-i]=c_count[i];
   }
@@ -3117,14 +3204,13 @@ NetCDF_get_vars_double(VALUE Var,VALUE start,VALUE end,VALUE stride)
   double *ptr;
   int i;
   struct NetCDFVar *Netcdf_var;
-  long l_start, l_end;
+  na_shape_t l_start, l_end;
   size_t *c_start;
   size_t *c_count;
   ptrdiff_t *c_stride;
-  int *shape;    /* NArray uses int instead of size_t */
+  na_shape_t *shape;    /* NArray uses int instead of size_t */
   int ndims;
   int *dimids;
-  int nc_tlen=1;
   size_t dimlen;
   VALUE NArray;
 
@@ -3202,11 +3288,8 @@ NetCDF_get_vars_double(VALUE Var,VALUE start,VALUE end,VALUE stride)
     }
   }
   
-  for(i=0;i<ndims;i++){
-    nc_tlen = nc_tlen*c_count[i];
-  }
 
-  shape = ALLOCA_N(int,ndims);
+  shape = ALLOCA_N(na_shape_t,ndims);
   for(i=0;i<ndims;i++){
     shape[ndims-1-i]=c_count[i];
   }
@@ -3228,15 +3311,15 @@ NetCDF_put_var_char(VALUE Var,VALUE NArray)
   int varid;
   int status;
   unsigned char *ptr,scalar;
-  int len,i=0;
+  na_shape_t len,i=0;
   struct NetCDFVar *Netcdf_var;
-  int nc_tlen=1;
+  na_shape_t nc_tlen=1;
   int ndimsp;
   int dimids[NC_MAX_DIMS];
   size_t lengthp;
   char *var_name;
 
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -3273,15 +3356,15 @@ NetCDF_put_var_byte(VALUE Var,VALUE NArray)
   int varid;
   int status;
   unsigned char *ptr,scalar;
-  int len,i=0;
+  na_shape_t len,i=0;
   struct NetCDFVar *Netcdf_var;
-  int nc_tlen=1;
+  na_shape_t nc_tlen=1;
   int ndimsp;
   int dimids[NC_MAX_DIMS];
   size_t lengthp;
   char *var_name;
 
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -3318,15 +3401,15 @@ NetCDF_put_var_short(VALUE Var,VALUE NArray)
   int varid;
   int status;
   short *ptr,scalar;
-  int len,i=0;
+  na_shape_t len,i=0;
   struct NetCDFVar *Netcdf_var;
-  int nc_tlen=1;
+  na_shape_t nc_tlen=1;
   int ndimsp;
   int dimids[NC_MAX_DIMS];
   size_t lengthp;
   char *var_name;
 
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -3363,15 +3446,15 @@ NetCDF_put_var_int(VALUE Var,VALUE NArray)
   int varid;
   int status;
   int *ptr,scalar;
-  int len,i=0;
+  na_shape_t len,i=0;
   struct NetCDFVar *Netcdf_var;
-  int nc_tlen=1;
+  na_shape_t nc_tlen=1;
   int ndimsp;
   int dimids[NC_MAX_DIMS];
   size_t lengthp;
   char *var_name;
 
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -3411,16 +3494,16 @@ NetCDF_put_var_float(VALUE Var,VALUE NArray)
   int varid;
   int status;
   float *ptr,scalar;
-  int len,i=0;
+  na_shape_t len,i=0;
   struct NetCDFVar *Netcdf_var;
-  int nc_tlen=1;
+  na_shape_t nc_tlen=1;
   int ndimsp;
   int dimids[NC_MAX_DIMS];
   size_t lengthp;
   char *var_name;
   
   
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -3458,16 +3541,16 @@ NetCDF_put_var_double(VALUE Var,VALUE NArray)
   int varid;
   int status;
   double *ptr,scalar;
-  int len,i=0;
+  na_shape_t len,i=0;
   struct NetCDFVar *Netcdf_var;
-  int nc_tlen=1;
+  na_shape_t nc_tlen=1;
   int ndimsp;
   int dimids[NC_MAX_DIMS];
   size_t lengthp;
   char *var_name;
 
 
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -3507,13 +3590,13 @@ NetCDF_put_var1_char(VALUE Var,VALUE NArray,VALUE start)
   unsigned char *ptr;
   int i;
   struct NetCDFVar *Netcdf_var;
-  long l_start;
+  na_shape_t l_start;
   size_t *c_start;
   int ndims;
   int   *dimids;
   size_t dimlen;
   
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -3558,13 +3641,13 @@ NetCDF_put_var1_byte(VALUE Var,VALUE NArray,VALUE start)
   unsigned char *ptr;
   int i;
   struct NetCDFVar *Netcdf_var;
-  long l_start;
+  na_shape_t l_start;
   size_t *c_start;
   int ndims;
   int   *dimids;
   size_t dimlen;
   
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -3609,13 +3692,13 @@ NetCDF_put_var1_sint(VALUE Var,VALUE NArray,VALUE start)
   short *ptr;
   int i;
   struct NetCDFVar *Netcdf_var;
-  long l_start;
+  na_shape_t l_start;
   size_t *c_start;
   int ndims;
   int   *dimids;
   size_t dimlen;
   
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -3659,13 +3742,13 @@ NetCDF_put_var1_int(VALUE Var,VALUE NArray,VALUE start)
   int *ptr;
   int i;
   struct NetCDFVar *Netcdf_var;
-  long l_start;
+  na_shape_t l_start;
   size_t *c_start;
   int ndims;
   int   *dimids;
   size_t dimlen;
   
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -3710,13 +3793,13 @@ NetCDF_put_var1_float(VALUE Var,VALUE NArray,VALUE start)
   float *ptr;
   int i;
   struct NetCDFVar *Netcdf_var;
-  long l_start;
+  na_shape_t l_start;
   size_t *c_start;
   int ndims;
   int   *dimids;
   size_t dimlen;
   
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -3761,13 +3844,13 @@ NetCDF_put_var1_double(VALUE Var,VALUE NArray,VALUE start)
   double *ptr;
   int i;
   struct NetCDFVar *Netcdf_var;
-  long l_start;
+  na_shape_t l_start;
   size_t *c_start;
   int ndims;
   int   *dimids;
   size_t dimlen;
   
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -3811,19 +3894,19 @@ NetCDF_put_vars_char(VALUE Var,VALUE NArray,VALUE start,VALUE end,VALUE stride)
   int varid;
   int status;
   unsigned char *ptr,scalar;
-  int len,i;
+  na_shape_t len;
   int c_count_all=1;
   struct NetCDFVar *Netcdf_var;
-  long l_start, l_end;
+  na_shape_t l_start, l_end;
   size_t *c_start;
   size_t *c_count;
   ptrdiff_t *c_stride;
-  int ndims;
-  int   *shape;
+  int ndims,i;
+  na_shape_t *shape;
   int   *dimids;
   size_t dimlen;
 
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -3917,19 +4000,19 @@ NetCDF_put_vars_byte(VALUE Var,VALUE NArray,VALUE start,VALUE end,VALUE stride)
   int varid;
   int status;
   unsigned char *ptr,scalar;
-  int len,i;
+  na_shape_t len;
   int c_count_all=1;
   struct NetCDFVar *Netcdf_var;
-  long l_start, l_end;
+  na_shape_t l_start, l_end;
   size_t *c_start;
   size_t *c_count;
   ptrdiff_t *c_stride;
-  int ndims;
-  int   *shape;
+  int ndims,i;
+  na_shape_t *shape;
   int   *dimids;
   size_t dimlen;
 
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -4023,19 +4106,19 @@ NetCDF_put_vars_sint(VALUE Var,VALUE NArray,VALUE start,VALUE end,VALUE stride)
   int varid;
   int status;
   short *ptr,scalar;
-  int len,i;
+  na_shape_t len;
   int c_count_all=1;
   struct NetCDFVar *Netcdf_var;
-  long l_start, l_end;
+  na_shape_t l_start, l_end;
   size_t *c_start;
   size_t *c_count;
   ptrdiff_t *c_stride;
-  int ndims;
-  int   *shape;
+  int ndims,i;
+  na_shape_t *shape;
   int   *dimids;
   size_t dimlen;
 
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -4130,19 +4213,19 @@ NetCDF_put_vars_int(VALUE Var,VALUE NArray,VALUE start,VALUE end,VALUE stride)
   int varid;
   int status;
   int *ptr,scalar;
-  int len,i;
+  na_shape_t len;
   int c_count_all=1;
   struct NetCDFVar *Netcdf_var;
-  long l_start, l_end;
+  na_shape_t l_start, l_end;
   size_t *c_start;
   size_t *c_count;
   ptrdiff_t *c_stride;
-  int ndims;
-  int   *shape;
+  int ndims,i;
+  na_shape_t *shape;
   int   *dimids;
   size_t dimlen;
 
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -4237,19 +4320,19 @@ NetCDF_put_vars_float(VALUE Var,VALUE NArray,VALUE start,VALUE end,VALUE stride)
   int varid;
   int status;
   float *ptr,scalar;
-  int len,i;
+  na_shape_t len;
   int c_count_all=1;
   struct NetCDFVar *Netcdf_var;
-  long l_start, l_end;
+  na_shape_t l_start, l_end;
   size_t *c_start;
   size_t *c_count;
   ptrdiff_t *c_stride;
-  int ndims;
-  int   *shape;
+  int ndims,i;
+  na_shape_t *shape;
   int   *dimids;
   size_t dimlen;
 
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -4344,19 +4427,19 @@ NetCDF_put_vars_double(VALUE Var,VALUE NArray,VALUE start,VALUE end,VALUE stride
   int varid;
   int status;
   double *ptr,scalar;
-  int len,i;
+  na_shape_t len;
   int c_count_all=1;
   struct NetCDFVar *Netcdf_var;
-  long l_start, l_end;
+  na_shape_t l_start, l_end;
   size_t *c_start;
   size_t *c_count;
   ptrdiff_t *c_stride;
-  int ndims;
-  int   *shape;
+  int ndims,i;
+  na_shape_t *shape;
   int   *dimids;
   size_t dimlen;
 
-  rb_secure(4);
+  rb_secure(3);
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid=Netcdf_var->ncid;
   varid=Netcdf_var->varid;
@@ -4498,9 +4581,27 @@ Init_netcdfraw(void)
   rb_define_const(cNetCDF, "NC_SHARE", INT2FIX(NC_SHARE));
   rb_define_const(cNetCDF, "NC_CLOBBER", INT2FIX(NC_CLOBBER));
   rb_define_const(cNetCDF, "NC_NOCLOBBER", INT2FIX(NC_NOCLOBBER));
+#if NCVER >= 400
+  rb_define_const(cNetCDF, "NC_64BIT_OFFSET", INT2FIX(NC_64BIT_OFFSET));
+     /* NC_64BIT_OFFSET supports large files in the class data format */ 
+  rb_define_const(cNetCDF, "NC_NETCDF4", INT2FIX(NC_NETCDF4));
+  rb_define_const(cNetCDF, "NC_CLASSIC_MODEL", INT2FIX(NC_CLASSIC_MODEL));
+     /* for use as ( NC_NETCDF4 | NC_CLASSIC_MODEL ) to ensure the classic 
+        data model in NetCDF4 by disabling new features like groups */
+  rb_define_const(cNetCDF, "NC_ENDIAN_NATIVE", INT2FIX(NC_ENDIAN_NATIVE));
+  rb_define_const(cNetCDF, "NC_ENDIAN_LITTLE", INT2FIX(NC_ENDIAN_LITTLE));
+  rb_define_const(cNetCDF, "NC_ENDIAN_BIG", INT2FIX(NC_ENDIAN_BIG));
+#endif
+ 
+#ifdef NARRAY_BIGMEM
+  rb_define_const(cNetCDF, "SUPPORT_BIGMEM", Qtrue);
+#else
+  rb_define_const(cNetCDF, "SUPPORT_BIGMEM", Qfalse);
+#endif
 
   /* Difinitions of the ruby methods */
   /* The methods of the NetCDF class */
+  rb_define_singleton_method(cNetCDF,"libvers",NetCDF_inq_libvers,0);
   rb_define_singleton_method(cNetCDF,"nc_open",NetCDF_open,2);
   rb_define_method(cNetCDF,"clone",NetCDF_clone,0);
   rb_define_method(cNetCDF,"close",NetCDF_close,0);
@@ -4551,6 +4652,12 @@ Init_netcdfraw(void)
   rb_define_method(cNetCDFAtt,"get",NetCDF_att_get,0);
 
   /* The methods of the NetCDFVar class */
+#if NCVER >= 400
+  rb_define_method(cNetCDFVar,"deflate",NetCDF_var_deflate,-1);
+  rb_define_method(cNetCDFVar,"deflate_params",NetCDF_var_deflate_params,0);
+  rb_define_method(cNetCDFVar,"endian=",NetCDF_var_set_endian,1);
+  rb_define_method(cNetCDFVar,"endian",NetCDF_var_endian,0);
+#endif
   rb_define_method(cNetCDFVar,"clone",NetCDF_var_clone,0);
   rb_define_method(cNetCDFVar,"name",NetCDF_var_inq_name,0);
   rb_define_method(cNetCDFVar,"ndims",NetCDF_var_ndims,0);

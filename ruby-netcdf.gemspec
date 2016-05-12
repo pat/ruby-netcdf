@@ -1,36 +1,34 @@
-# -*- encoding: utf-8 -*-
+# coding: utf-8
+lib = File.expand_path('../lib', __FILE__)
+$LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
+require 'version'
 
-Gem::Specification.new do |s|
-  s.name = "ruby-netcdf-updated"
-  s.version = "0.7.0"
+Gem::Specification.new do |spec|
+  spec.name          = "ruby-netcdf"
+  spec.version       = Ruby::Netcdf::VERSION
+  spec.authors           = ["Takeshi Horinouchi", "Tsuyoshi Koshiro",\
+    "Shigenori Otsuka", "Seiya Nishizawa", "T Sakakima"]
+  spec.email            = ['eriko@gfd-dennou.org']
 
-  s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
-  s.authors = ["Takeshi Horinouchi", "Tsuyoshi Koshiro", "Shigenori Otsuka", "Seiya Nishizawa", "T Sakakima", "Edmund Highcock"]
-  s.date = "2012-06-28"
-  s.description = "RubyNetCDF is the Ruby interface to the NetCDF library built on the NArray library, which is an efficient multi-dimensional numeric array class for Ruby. "
-  s.email = ["edmundhighcock@users.sourceforge.net"]
-  s.extensions = ["extconf.rb"]
-  s.files = %w( ChangeLog INSTALL LICENSE.txt README.md Rakefile ToDo extconf.rb lib/netcdf.rb lib/netcdf_miss.rb netcdfraw.c )
-  s.homepage = "http://www.gfd-dennou.org/arch/ruby/products/ruby-netcdf/"
-  s.licenses = ["GFD Dennou Club"]
-  s.require_paths = ["lib"]
-  s.required_ruby_version = Gem::Requirement.new(">= 1.6")
-  s.rubygems_version = "1.8.23"
-  s.summary = "Ruby interface to NetCDF"
-  s.has_rdoc = true
+  #if spec.respond_to?(:metadata)
+  #  spec.metadata['allowed_push_host'] = "TODO: Set to 'http://mygemserver.com' to prevent pushes to rubygems.org, or delete to allow pushes to any server."
+  #end
 
-  if s.respond_to? :specification_version then
-    s.specification_version = 3
+  spec.summary          = %q{Ruby interface to NetCDF}
+  spec.description      = %q{RubyNetCDF is the Ruby interface to the NetCDF library built on the NArray library, which is an efficient multi-dimensional numeric array class for Ruby. This version works with Ruby2.0.}
 
-    if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
-      s.add_runtime_dependency(%q<narray>, [">= 0"])
-      s.add_runtime_dependency(%q<narray_miss>, [">= 0"])
-    else
-      s.add_dependency(%q<narray>, [">= 0"])
-      s.add_dependency(%q<narray_miss>, [">= 0"])
-    end
-  else
-    s.add_dependency(%q<narray>, [">= 0"])
-    s.add_dependency(%q<narray_miss>, [">= 0"])
-  end
+  spec.homepage         = 'http://www.gfd-dennou.org/arch/ruby/products/ruby-netcdf/'
+  spec.licenses         = ["GFD Dennou Club"]
+
+  spec.files         = `git ls-files -z`.split("\x0")
+  spec.test_files    = spec.files.grep(%r{^(test|demo)/})
+  #spec.bindir        = "exe"
+  #spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
+  spec.require_paths = ["lib"]
+
+  spec.required_ruby_version = Gem::Requirement.new(">= 1.6")
+  spec.add_runtime_dependency(%q<narray>, [">= 0"])
+  spec.add_runtime_dependency(%q<narray_miss>, [">= 0"])
+
+  spec.extensions << "extconf.rb"
 end
