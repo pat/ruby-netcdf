@@ -1,5 +1,5 @@
 require 'nmatrix'
-#require 'numru/netcdfraw'
+require 'numru/netcdfraw'
 
 
 module NumRu
