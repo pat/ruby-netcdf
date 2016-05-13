@@ -11,28 +11,28 @@ end
 if Gem.respond_to?(:find_files)
   require "rbconfig"
   so = RbConfig::CONFIG["DLEXT"]
-  narray_include = File.expand_path(File.dirname(Gem.find_files("narray.h")[0]))
-  narray_lib = File.expand_path(File.dirname(Gem.find_files("narray." + so)[0]))
+  nmatrix_include = File.expand_path(File.dirname(Gem.find_files("nmatrix.h")[0]))
+  nmatrix_lib = File.expand_path(File.dirname(Gem.find_files("nmatrix." + so)[0]))
 else
   gem_home=(`gem environment GEM_HOME`).chomp
-  narray_dir = Dir.glob("#{gem_home}/gems/narray-*").sort[-1]
-  if narray_dir
-    narray_include = narray_lib = narray_dir
+  nmatrix_dir = Dir.glob("#{gem_home}/gems/nmatrix-*").sort[-1]
+  if nmatrix_dir
+    nmatrix_include = nmatrix_lib = nmatrix_dir
   else
-    narray_include = narray_lib = [ $sitearchdir, $vendorarchdir]
+    nmatrix_include = nmatrix_lib = [ $sitearchdir, $vendorarchdir]
   end
 end
-dir_config('narray', narray_include, narray_lib)
+dir_config('nmatrix', nmatrix_include, nmatrix_lib)
 
 dir_config('netcdf', '/usr/local')
 
-if ( ! ( have_header("narray.h") && have_header("narray_config.h") ) ) then
+if ( ! ( have_header("nmatrix.h") ) ) then
 print <<EOS
 ** configure error **  
-   Header narray.h or narray_config.h is not found. If you have these files in 
-   /narraydir/include, try the following:
+   Header nmatrix.h or nmatrix_config.h is not found. If you have these files in 
+   /nmatrixdir/include, try the following:
 
-   % ruby extconf.rb --with-narray-include=/narraydir/include
+   % ruby extconf.rb --with-nmatrix-include=/nmatrixdir/include
 
 EOS
    exit(-1)
@@ -144,7 +144,7 @@ end
 
 
 if /cygwin|mingw/ =~ RUBY_PLATFORM
-   have_library("narray") || raise("ERROR: narray library is not found")
+   have_library("nmatrix") || raise("ERROR: nmatrix library is not found")
 end
 
 create_makefile "numru/netcdfraw"
