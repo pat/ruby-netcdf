@@ -17,10 +17,10 @@ Make sure you have netCDF installed on your system.
 Example
 -------
 
-    include NumRu
+    require 'netcdf'
 
     filename = "test.nc"
-    file=NetCDF.create(filename,false,false)
+    file=NumRu::NetCDF.create(filename,false,false)
 
     dimx=file.def_dim("x",15)
     dimy=file.def_dim("y",10)
