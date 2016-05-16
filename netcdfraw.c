@@ -678,7 +678,7 @@ NetCDF_put_att_numeric(int ncid, char *name,VALUE value,VALUE atttype, int varid
       }
       /*RFCALL_11_ON(value, "push", CR_SYM(RSTRING_PTR(atttype)));*/
       RFCALL_11_ON(value, "push", hash);
-      CR_PSTR("Creating nmatrix");
+      /*CR_PSTR("Creating nmatrix");*/
       rb_p(value);
       rb_p(hash);
       value = rb_funcall2(cNMatrix, rb_intern("[]"), RARRAY_LEN(value), RARRAY_PTR(value));
@@ -2816,7 +2816,7 @@ NetCDF_get_vars_byte(VALUE Var,VALUE start,VALUE end,VALUE stride)
   size_t dimlen;
   VALUE NMatrix;
 
-  CR_PSTR("Starting");
+  /*CR_PSTR("Starting");*/
   Data_Get_Struct(Var,struct NetCDFVar,Netcdf_var);
   ncid = Netcdf_var->ncid;
   varid = Netcdf_var->varid;
@@ -2847,7 +2847,7 @@ NetCDF_get_vars_byte(VALUE Var,VALUE start,VALUE end,VALUE stride)
     c_start[i]=l_start;
   }
 
-  CR_PSTR("Converting stride");
+  /*CR_PSTR("Converting stride");*/
   c_stride=ALLOCA_N(ptrdiff_t,ndims);
   switch(TYPE(stride)){
     case T_NIL:
@@ -2868,7 +2868,7 @@ NetCDF_get_vars_byte(VALUE Var,VALUE start,VALUE end,VALUE stride)
       }
   }
 
-  CR_PSTR("Converting count");
+  /*CR_PSTR("Converting count");*/
   c_count=ALLOCA_N(size_t,ndims);
   switch(TYPE(end)){
     case T_NIL:
@@ -2899,15 +2899,15 @@ NetCDF_get_vars_byte(VALUE Var,VALUE start,VALUE end,VALUE stride)
     shape[RCMAJOR(ndims,i)]=c_count[i];
   }
 
-  CR_PSTR("Converting to NMatrix");
+  /*CR_PSTR("Converting to NMatrix");*/
 
   Cbyte_to_NMatrix(NMatrix,ndims,shape,ptr);
 
-  CR_PSTR("Reading variable");
+  /*CR_PSTR("Reading variable");*/
   status = nc_get_vars_uchar(ncid,varid,c_start,c_count,c_stride,ptr);
   if(status != NC_NOERR) NC_RAISE(status);
 
-  CR_PSTR("Finished");
+  /*CR_PSTR("Finished");*/
   OBJ_TAINT(NMatrix);
   return NMatrix;
 }
