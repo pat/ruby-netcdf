@@ -1,6 +1,6 @@
 ##require 'numru/netcdf' 
 ## // to test before make install -->
-require 'narray'
+require 'nmatrix'
 require '../netcdfraw'  
 require '../lib/netcdf'
 ## <-- to test before make install //
@@ -16,29 +16,30 @@ dimy=file.def_dim("y",10)
 dimz=file.def_dim("z",10)
 
 batt = file.put_att("type_byte",5,"byte")
-file.put_att("type_short",[222,333,444],"sint")
+file.put_att("type_short",[222,333,444],"int16")
 file.put_att("type_int",[2222,3333,4444])
-file.put_att("type_float",[2.22,3.33,4.44],"sfloat")
+file.put_att("type_float",[2.22,3.33,4.44],"float32")
 file.put_att("type_double",[2.222,3.333,4.444])
 string = file.put_attraw("string","netCDF for Ruby","string")
 batt.put(6,"byte")
 
-sint_var=file.def_var("test_sint","sint",["x"])
+int16_var=file.def_var("test_int16","int16",["x"])
 byte_var=file.def_var("test_byte","byte",["y"])
 byte_var2=file.def_var("test_byte2","byte",[dimy,dimz])
-int_var=file.def_var("test_int","int",["y"])
-sfloat_var=file.def_var("test_sfloat","sfloat",["z"])
-float_var=file.def_var("test_float","float",["y"])
+int_var=file.def_var("test_int","int32",["y"])
+sfloat_var=file.def_var("test_sfloat","float32",["z"])
+float_var=file.def_var("test_float","float64",["y"])
 
-a=NArray.sint(10).indgen
-b=NArray.sint(10).fill(7)
-c=NArray.byte(10).indgen
-d=NArray.int(10).indgen
-e=NArray.sfloat(10).fill(1.111)
-f=NArray.float(10).fill(5.5555555)
+a=NMatrix.seq([10], dtype: :int16)
+b=NMatrix.ones([10], dtype: :int16) * 7.0
+c=NMatrix.bindgen([10])
+d=NMatrix.seq([10], dtype: :int32)
+e=NMatrix.ones([10], dtype: :float32) * 1.111
+f=NMatrix.ones([10], dtype: :float64) * 5.5555555
 file.enddef
 file2 = file
 (file2 == file)
+
 
 byte_var.put_var_byte(c)
 int_var.put_var_int(d)
@@ -47,31 +48,32 @@ float_var.put_var_float(f)
 
 file.redef
 byte_vara=file.def_var("test_byte_vara","byte",[dimy,dimz]);
-sint_vara=file.def_var("test_sint_vara","sint",["y","z"]);
-int_vara=file.def_var("test_int_vara","int",["y","z"]);
-sfloat_vara=file.def_var("test_sfloat_vara","sfloat",["y","z"]);
-float_vara=file.def_var("test_float_vara","float",["y","z"]);
+int16_vara=file.def_var("test_int16_vara","int16",["y","z"]);
+int_vara=file.def_var("test_int_vara","int32",["y","z"]);
+sfloat_vara=file.def_var("test_sfloat_vara","float32",["y","z"]);
+float_vara=file.def_var("test_float_vara","float64",["y","z"]);
 file.enddef
 
 byte_vara2 = byte_vara
 (byte_vara2 == byte_vara)
 
-g=NArray.byte(10,10).indgen
-h=NArray.byte(2,3).indgen
-gh=NArray.byte(1,1).fill(33)
-k=NArray.sint(10,10).indgen
-l=NArray.sint(2,3).indgen
-kl=NArray.sint(1,1).fill(44)
-m=NArray.int(10,10).indgen
-n=NArray.int(2,3).indgen
-mn=NArray.int(1,1).fill(55)
-o=NArray.sfloat(10,10).fill(1.234567)
-p=NArray.sfloat(2,3).fill(2.345678)
-op=NArray.int(1,1).fill(3.4)
-q=NArray.float(10,10).fill(1.234)
-r=NArray.float(2,3).fill(2.345)
-qr=NArray.float(1,1).fill(4.5)
-s=NArray.float(2,2).fill(10.0)
+g=NMatrix.bindgen([10,10])
+h=NMatrix.bindgen([2,3])
+gh=NMatrix.ones([1,1], dtype: :byte) * 33
+k=NMatrix.seq([10,10], dtype: :int16)
+l=NMatrix.seq([2,3], dtype: :int16)
+kl=NMatrix.ones([1,1], dtype: :int16) * 44
+m=NMatrix.seq([10,10], dtype: :int32)
+n=NMatrix.seq([2,3], dtype: :int32)
+mn=NMatrix.ones([1,1], dtype: :int32) * 55
+o=NMatrix.ones([10,10], dtype: :float32) * 1.234567
+p=NMatrix.ones([2,3], dtype: :float32) * 2.345678
+op=NMatrix.ones([1,1], dtype: :float32) * 3.4
+q=NMatrix.ones([10,10], dtype: :float64) * 1.234
+r=NMatrix.ones([2,3], dtype: :float64) * 2.345
+qr=NMatrix.ones([1,1], dtype: :float64) * 4.5
+s=NMatrix.ones([2,2], dtype: :float64) * 10.0
+
 
 
 byte_vara.put(g)
@@ -82,13 +84,13 @@ byte_vara.put(h,{"start"=>[0,0],"stride"=>[2,3]})
 byte_vara.put(h,{'start'=>[1,1],"end"=>[3,7],"stride"=>[2,3]})
 byte_vara.put(gh,{"index"=>[4,7]})
 
-sint_vara.put(k)
-sint_vara.put(l,{"start"=>[3,5]})
-sint_vara.put(k,{"start"=>[0,0],"end"=>[9,9]})
-sint_vara.put(l,{"start"=>[-8,2]})
-sint_vara.put(l,{"start"=>[0,0],"stride"=>[2,3]})
-sint_vara.put(l,{"start"=>[1,1],"end"=>[3,7],"stride"=>[2,3]})
-sint_vara.put(kl,{"index"=>[4,7]})
+int16_vara.put(k)
+int16_vara.put(l,{"start"=>[3,5]})
+int16_vara.put(k,{"start"=>[0,0],"end"=>[9,9]})
+int16_vara.put(l,{"start"=>[-8,2]})
+int16_vara.put(l,{"start"=>[0,0],"stride"=>[2,3]})
+int16_vara.put(l,{"start"=>[1,1],"end"=>[3,7],"stride"=>[2,3]})
+int16_vara.put(kl,{"index"=>[4,7]})
 
 int_vara.put(m)
 int_vara.put(n,{"start"=>[3,5]})
@@ -116,6 +118,7 @@ float_vara.put(qr,{"index"=>[4,7]})
 
 float_vara.dim_names
 
+
 na_aaa=byte_vara.get({"start"=>[3,5]})
 na_aab=byte_vara.get({"start"=>[0,0],"end"=>[9,9]})
 na_aac=byte_vara.get({"start"=>[-8,2]})
@@ -124,13 +127,13 @@ na_aae=byte_vara.get({'start'=>[1,1],"end"=>[3,7],"stride"=>[2,3]})
 na_aaf=byte_vara.get({"index"=>[4,7]})
 na_aag=byte_vara.get
 
-na_bba=sint_vara.get({"start"=>[3,5]})
-na_bbb=sint_vara.get({"start"=>[0,0],"end"=>[9,9]})
-na_bbc=sint_vara.get({"start"=>[-8,2]})
-na_bbd=sint_vara.get({"start"=>[0,0],"stride"=>[2,3]})
-na_bbf=sint_vara.get({"start"=>[1,1],"end"=>[3,7],"stride"=>[2,3]})
-na_bbg=sint_vara.get({"index"=>[4,7]})
-na_bbh=sint_vara.get
+na_bba=int16_vara.get({"start"=>[3,5]})
+na_bbb=int16_vara.get({"start"=>[0,0],"end"=>[9,9]})
+na_bbc=int16_vara.get({"start"=>[-8,2]})
+na_bbd=int16_vara.get({"start"=>[0,0],"stride"=>[2,3]})
+na_bbf=int16_vara.get({"start"=>[1,1],"end"=>[3,7],"stride"=>[2,3]})
+na_bbg=int16_vara.get({"index"=>[4,7]})
+na_bbh=int16_vara.get
 
 na_cca=int_vara.get({"start"=>[3,5]})
 na_ccb=int_vara.get({"start"=>[0,0],"end"=>[9,9]})
@@ -165,19 +168,19 @@ copy_byte.name="new_name"
 copy_byte2 = copy_byte
 (copy_byte2 == copy_byte)
 
-copy_sint = string.copy(sint_vara)
-copy_sint.put("%%%%%")
+copy_int16 = string.copy(int16_vara)
+copy_int16.put("%%%%%")
 copy_int = string.copy(int_vara)
-copy_int.put([0,60],"int")
+copy_int.put([0,60],"int32")
 copy_sfloat = string.copy(sfloat_vara)
-copy_sfloat.put([0.01,5.5],"sfloat")
+copy_sfloat.put([0.01,5.5],"float32")
 copy_float = string.copy(float_vara)
-copy_float.put([0.0001,5.5555],"float")
+copy_float.put([0.0001,5.5555],"float64")
 file.enddef
 nm = copy_byte.name
 att0 = string.get
 att1 = copy_byte.get
-att2 = copy_sint.get
+att2 = copy_int16.get
 att3 = copy_int.get
 att4 = copy_sfloat.get
 att5 = copy_float.get
